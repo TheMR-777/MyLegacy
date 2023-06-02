@@ -1,4 +1,4 @@
 # MyLegacy
-Contains all of my "Legacy" after graduation, mainly in:
+Contain smy "Legacy" after graduation, mainly in:
 - C++
-- and, Flutter 
+- and, Flutter (soon) 
