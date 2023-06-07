@@ -1,0 +1,30 @@
+Imports System
+
+Module Program
+    Sub Print(array() As Object)
+        Console.WriteLine("-----------------")
+
+        For Each item As Object In array
+            Console.Write(TypeName(item) & " : ")
+            Console.Write(item & " ")
+            Console.WriteLine()
+        Next item
+
+    End Sub
+
+    Sub Main()
+
+        ' Variable Types
+        ' --------------
+
+        Dim my_types() as Object = {
+            True,                       ' Boolean
+            777,                        ' Integer
+            CSng(7.77),                 ' Single (float)
+            77.7,                       ' Double
+            #02/07/2077#                ' Date
+        }
+
+        Print(my_types)
+    End Sub
+End Module
