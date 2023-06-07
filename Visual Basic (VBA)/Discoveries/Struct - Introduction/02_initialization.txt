@@ -1,0 +1,31 @@
+Imports System
+
+Module MyProgram
+    Structure MyType_E
+        Public x As Int32
+        Public y As Int64
+    End Structure
+
+    Structure MyType_D
+        Public Name As String
+        Public Roll As String
+        Public Marks As Int64
+        Public CGPA As Single
+    End Structure
+
+    Sub Main()
+        Dim my_var = New MyType_E With 
+        {
+            .x = 77,
+            .y = 99
+        }
+
+        Dim my_inf = New MyType_D With
+        {
+            .Name = "TheMR",
+            .Roll = "M_63",
+            .Marks = 77,
+            .CGPA = 3.72
+        }
+    End Sub
+End Module
