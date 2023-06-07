@@ -1,0 +1,50 @@
+Imports System
+
+Module MyProgram
+
+	Structure MyType_01
+		Public Name As String
+		Public Roll As String
+		Public Marks As Int16
+		Public CGPA As Single
+	End Structure
+
+	Structure MyType_02
+		Public Name As String
+		Public Code As String
+		Public Std As Integer
+	End Structure
+
+	ReadOnly my_array = New Object() {
+		New MyType_01 With {
+			.Name = "TheMR",
+			.Roll = "M_63",
+			.Marks = 77.7,
+			.CGPA = 3.72
+		},
+		New MyType_02 With {
+			.Name = "Mathematics",
+			.Code = "CS-777",
+			.Std = 63
+		}
+	}
+
+	Sub UniversalPrint(X)
+		For Each Elem In X.GetType().GetFields()
+			Console.WriteLine($"{Elem.Name} : {Elem.GetValue(X)}")
+		Next
+	End Sub
+
+	Sub PrintAll()
+		For Each Elem In my_array
+			Console.WriteLine()
+			UniversalPrint(Elem)
+		Next
+	End Sub
+
+	Sub Main()
+		PrintAll()
+		Console.ReadKey(True)
+	End Sub
+
+End Module
