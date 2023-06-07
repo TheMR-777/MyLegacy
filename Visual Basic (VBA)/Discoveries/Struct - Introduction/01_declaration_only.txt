@@ -1,0 +1,19 @@
+Imports System
+
+Module MyProgram
+    Structure MyType_E
+        Public x As Int32
+        Public y As Int64
+    End Structure
+
+    Structure MyType_D
+        Public Name As String
+        Public Roll As String
+        Public Marks As Int64
+        Public CGPA As String
+    End Structure
+
+    Sub Main()
+        
+    End Sub
+End Module
