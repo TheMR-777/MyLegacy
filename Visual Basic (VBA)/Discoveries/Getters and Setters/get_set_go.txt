@@ -1,0 +1,25 @@
+Imports System
+
+Module MyProgram
+    Public Class Person
+        Private _Name As String
+
+        Public Property Name As String
+            Get
+                Return $"< {_Name} >"
+            End Get
+            Set(x As String)
+                _Name = If(x <> "", x, _Name)
+            End Set
+        End Property
+    End Class
+
+    Sub Main()
+        Dim my_var = New Person With {
+            .Name = "Nice"
+        }
+        my_var.Name = ""
+
+        Console.WriteLine(my_var.Name)
+    End Sub
+End Module
