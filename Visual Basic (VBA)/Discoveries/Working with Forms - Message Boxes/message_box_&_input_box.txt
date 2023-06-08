@@ -1,0 +1,18 @@
+Public Class MyForm
+	Private Sub MyButton_Click(sender As Object, e As EventArgs) Handles MyButton.Click, Button1.Click
+
+		Dim MyInput As String = InputBox(
+			"Enter the Text",
+			Title:="MyInput",
+			DefaultResponse:="This is the Default Text, to be displayed in the Box"
+		)
+
+		MessageBox.Show(
+			"Text Accepted",
+			"This is Caption",
+			MessageBoxButtons.YesNoCancel,
+			MessageBoxIcon.Information
+		)
+
+	End Sub
+End Class
