@@ -1,6 +1,3 @@
-Imports System
-Imports System.Reflection
-
 Module MyProgram
 	Public Class MyType_01
 		Public Name As String
