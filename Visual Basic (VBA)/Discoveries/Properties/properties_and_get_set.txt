@@ -1,0 +1,29 @@
+Module MyProgram
+
+	Public Class MyType
+		Private Data As String
+		Public Property MyData() As String
+            Get
+                Return $"< {Data} >"
+            End Get
+            Set(value As String)
+                If (value <> "") Then
+                    Data = value
+                End If
+            End Set
+        End Property
+    End Class
+
+
+    Sub Main()
+
+        Dim MyObject = New MyType With {
+            .MyData = "TheMR"
+        }
+        MyObject.MyData = ""
+
+        Console.WriteLine(MyObject.MyData)
+        Console.ReadKey()
+
+    End Sub
+End Module
