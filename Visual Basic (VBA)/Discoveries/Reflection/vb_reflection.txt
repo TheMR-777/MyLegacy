@@ -1,0 +1,47 @@
+Imports System
+Imports System.Reflection
+
+Module MyProgram
+	Public Class MyType_01
+		Public Name As String
+		Public Roll As String
+		Public Age As Integer
+	End Class
+
+	Public Class MyType_02
+		Public V1 As Int64
+		Public V2 As Int64
+		Public V3 As Int64
+	End Class
+
+	Sub PowerPrint(X)
+		For Each Y In X.GetType().GetFields()
+			Console.WriteLine(Y.Name & " = " & Y.GetValue(X))
+		Next
+	End Sub
+
+	Sub Main()
+		Dim MyObjects As Object() = {
+			New MyType_01 With
+			{
+				.Name = "John",
+				.Roll = "123",
+				.Age = 20
+			},
+			New MyType_02 With
+			{
+				.V1 = 63,
+				.V2 = 47,
+				.V3 = 77
+			}
+		}
+
+		For Each MyObject In MyObjects
+			PowerPrint(MyObject)
+			Console.WriteLine()
+		Next
+
+		Console.ReadKey()
+    
+	End Sub
+End Module
