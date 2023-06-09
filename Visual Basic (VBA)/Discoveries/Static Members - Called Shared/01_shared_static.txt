@@ -1,0 +1,11 @@
+Module Module1
+	Public Class MyType
+		Public Shared Data As String = "Hello World"
+	End Class
+
+	Sub Main()
+		Console.WriteLine(MyType.Data)
+		Console.ReadLine()
+	End Sub
+
+End Module
