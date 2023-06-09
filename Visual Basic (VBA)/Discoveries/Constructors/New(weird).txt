@@ -1,0 +1,23 @@
+Module MyProgram
+
+	Public Class MyType
+
+		' Constructor
+		Public Sub New()
+			Console.WriteLine("Created: MyType")
+		End Sub
+
+	End Class
+
+	Sub Main()
+
+		If (True) Then
+			Dim myType = New MyType
+		End If
+
+		Console.WriteLine("Press any key to exit...")
+		Console.ReadKey()
+
+	End Sub
+
+End Module
