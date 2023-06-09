@@ -1,0 +1,21 @@
+Module Module1
+	Public Class MyType
+		Private Shared Data As String
+		Public Shared Property MyData() As String
+
+			Get
+				Return $"MyData: < {Data} >"
+			End Get
+			Set(value As String)
+				Data = value
+			End Set
+
+		End Property
+	End Class
+
+	Sub Main()
+		MyType.MyData = "TheMR"
+		Console.WriteLine(MyType.MyData)
+		Console.ReadLine()
+	End Sub
+End Module
