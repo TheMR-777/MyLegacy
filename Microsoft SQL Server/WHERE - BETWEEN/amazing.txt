@@ -1,0 +1,4 @@
+SELECT
+	*
+FROM dbo.Orders
+WHERE OrderTotal BETWEEN 100 AND 500
