@@ -13,4 +13,4 @@ FROM Orders o
 JOIN Customers c ON o.CustomerID = c.CustomerID
 JOIN Order_Product op ON o.OrderID = op.OrderID
 JOIN Product pro ON op.CookieID = pro.CookieID
-ORDER BY Total
+ORDER BY Total DESC
