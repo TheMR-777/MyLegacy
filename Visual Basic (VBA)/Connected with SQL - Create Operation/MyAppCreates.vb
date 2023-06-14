@@ -3,8 +3,9 @@ Imports System.Data.SqlClient
 
 Public Class MyApp
 	Private Function MakeQuery(Name As String, Roll As String, Note As String) As String
+
 		' Format:
-		' INSERT INTO [dbo].[MyTable]
+		' INSERT INTO [dbo].[MyTable2]
 		' (
 		'	[Name],
 		'	[Roll Number],
@@ -13,7 +14,7 @@ Public Class MyApp
 		' VALUES
 
 		Return String.Format(
-			"INSERT INTO [dbo].[MyTable] ([Name], [Roll Number], [Notes]) VALUES ('{0}', '{1}', '{2}')",
+			"INSERT INTO [dbo].[MyTable2] ([Name], [Roll Number], [Notes]) VALUES ('{0}', '{1}', '{2}')",
 			Name, Roll, Note
 		)
 
@@ -21,9 +22,8 @@ Public Class MyApp
 
 	Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
 
-		Dim ConnectionString = "Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=MyDB;Integrated Security=True"
-
-		Dim SQL_Connection As New SqlConnection(ConnectionString)
+		Dim The_Connection = "Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=MyDB;Integrated Security=True"
+		Dim SQL_Connection As New SqlConnection(The_Connection)
 		Dim My_SQL_Command As New SqlCommand(
 			MakeQuery(T_Name.Text, T_Roll.Text, T_Note.Text),
 			SQL_Connection
@@ -31,6 +31,7 @@ Public Class MyApp
 
 		SQL_Connection.Open()
 		My_SQL_Command.ExecuteNonQuery()
+		SQL_Connection.Close()
 
 	End Sub
 End Class
