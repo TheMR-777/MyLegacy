@@ -1,4 +1,5 @@
 # MyLegacy
-Contains my "Legacy" after graduation, mainly in:
+Contains my progress (Legacy) after graduation, mainly in:
 - C++
-- and, Flutter (soon) 
+- VB Forms with SQL
+- and, Flutter (soon)
