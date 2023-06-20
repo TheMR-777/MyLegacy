@@ -1,0 +1,24 @@
+	Private Sub Load_Locale()
+
+		Dim My_IP As String
+		Dim TimeZ As String
+
+		Try
+
+			Dim MyClient = New Net.WebClient()
+			Dim DataJSON = MyClient.DownloadString("http://ip-api.com/json")
+			Dim Raw_Data = Newtonsoft.Json.JsonConvert.DeserializeObject(Of Dictionary(Of String, String))(DataJSON)
+
+			My_IP = Raw_Data("query")
+			TimeZ = Raw_Data("timezone")
+
+		Catch
+
+			My_IP = Net.Dns.GetHostEntry(Net.Dns.GetHostName()).AddressList(1).ToString()
+			TimeZ = TimeZoneInfo.Local.DisplayName
+
+		End Try
+
+		Locale.Text = $"IP: {My_IP}   |   Timezone: {TimeZ}"
+
+	End Sub
