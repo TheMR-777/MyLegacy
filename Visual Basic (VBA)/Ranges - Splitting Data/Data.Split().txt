@@ -1,0 +1,20 @@
+Module Module1
+
+	Sub Main()
+
+		Dim Data As String
+		With New Net.WebClient()
+			Data = .DownloadString("http://ip-api.com/json")
+			Data = Data.Substring(1, Data.Length - 2)
+		End With
+
+		Dim Range = Data.Split(New Char() {",", ":"}, StringSplitOptions.RemoveEmptyEntries).ToList()
+		For i = 1 To Range.Count Step 2
+			Console.WriteLine(Range(i))
+		Next
+
+		Console.ReadKey(True)
+
+	End Sub
+
+End Module
