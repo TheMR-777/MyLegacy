@@ -12,9 +12,14 @@
 			My_IP = Raw_Data("query")
 			TimeZ = Raw_Data("timezone")
 
+			' Dim Raw_Data = DataJSON.Substring(1, DataJSON.Length - 2).Split(New Char() {":", ","}).ToList()
+			' My_IP = Raw_Data(27).Substring(1, Raw_Data(27).Length - 2)
+			' TimeZ = Raw_Data(19).Substring(1, Raw_Data(19).Length - 2)
+
 		Catch
 
-			My_IP = Net.Dns.GetHostEntry(Net.Dns.GetHostName()).AddressList(1).ToString()
+			' My_IP = Net.Dns.GetHostEntry(Net.Dns.GetHostName()).AddressList(1).ToString()
+			My_IP = "No Internet"
 			TimeZ = TimeZoneInfo.Local.DisplayName
 
 		End Try
