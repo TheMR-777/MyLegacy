@@ -54,11 +54,9 @@
 			Return
 		End If
 
-		Dim RecipeApp = New RecipeApp(User) With {
-			.TheLogin = Me,
-			.Register = Nothing
-		}
-		RecipeApp.Show()
+		Dim TheRecipeApp = New RecipeApp(User)
+		RecipeApp.TheLogin = Me
+		TheRecipeApp.Show()
 		Hide()
 
 	End Sub

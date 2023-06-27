@@ -78,7 +78,7 @@
 				Return Convert.ToBase64String(stream.ToArray())
 			End Using
 		Else
-			Return Nothing
+			Return ""
 		End If
 
 	End Function

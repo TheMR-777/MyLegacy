@@ -22,6 +22,7 @@ Partial Class Registration
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Registration))
         Me.F_NameL = New System.Windows.Forms.Label()
         Me.L_NameL = New System.Windows.Forms.Label()
         Me.EmailL = New System.Windows.Forms.Label()
@@ -145,6 +146,7 @@ Partial Class Registration
         Me.Controls.Add(Me.EmailL)
         Me.Controls.Add(Me.L_NameL)
         Me.Controls.Add(Me.F_NameL)
+        Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "Registration"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
         Me.Text = "Registration"

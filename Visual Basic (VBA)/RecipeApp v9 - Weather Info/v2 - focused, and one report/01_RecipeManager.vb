@@ -1,14 +1,10 @@
 ﻿Public Class RecipeApp
 
-	' Liabilities
-	Public TheLogin As Login
-	Public Register As Registration
-
-	' Internals
 	Dim ButtonName() As String = {"Create", "Update"}
 	Dim Cache() As String = {"", "", "", ""}
+	Dim DidSignOut = False
+	Public Shared TheLogin As Login
 
-	' Constructor
 	Public Sub New(ByRef User As String)
 		InitializeComponent()
 		Welcome.Text = $"Welcome, {User}"
@@ -68,15 +64,20 @@
 			)
 
 			Dim Format = $"INSERT INTO {TableRecipeDB} VALUES 
-			(
-				'{Title.Text}', 
-				'{Description.Text}', 
-				'{Ingredients.Text}', 
-				'{Procedure.Text}', 
-				'{EncodeImage(ImageBox.Image)}'
-			)"
+            (
+                @Title, 
+                @Description, 
+                @Ingredients, 
+                @Procedure, 
+                @Image
+            )"
 
 			DatabaseQuery = New SqlClient.SqlCommand(Format, DB_Connection)
+			DatabaseQuery.Parameters.AddWithValue("@Title", Title.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Description", Description.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Ingredients", Ingredients.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Procedure", Procedure.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Image", EncodeImage(ImageBox.Image))
 			Execute_Query()
 
 		End Sub
@@ -91,15 +92,20 @@
 			)
 
 			Dim Format = $"UPDATE {TableRecipeDB} 
-				SET 
-					[Title] = '{Title.Text}', 
-					[Description] = '{Description.Text}', 
-					[Ingredients] = '{Ingredients.Text}', 
-					[Procedure] = '{Procedure.Text}', 
-					[Image] = '{EncodeImage(ImageBox.Image)}' 
-                WHERE [Title] = '{Title.Text}'"
+            SET 
+                [Title] = @Title, 
+                [Description] = @Description, 
+                [Ingredients] = @Ingredients, 
+                [Procedure] = @Procedure, 
+                [Image] = @Image 
+            WHERE [Title] = @Title"
 
 			DatabaseQuery = New SqlClient.SqlCommand(Format, DB_Connection)
+			DatabaseQuery.Parameters.AddWithValue("@Title", Title.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Description", Description.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Ingredients", Ingredients.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Procedure", Procedure.Text)
+			DatabaseQuery.Parameters.AddWithValue("@Image", EncodeImage(ImageBox.Image))
 			Execute_Query()
 
 		End Sub
@@ -161,20 +167,20 @@
 			Locale = Newtonsoft.Json.JsonConvert.DeserializeObject(Of Dictionary(Of String, String))(Buffer)
 
 			Buffer = Client.DownloadString(
-				WeatherURL &
-				"?lat=" & Locale("lat") &
-				"&lon=" & Locale("lon") &
-				"&appid=" + WeatherAPI
+				$"{WeatherURL}
+				?lat={Locale("lat")}
+				&lon={Locale("lon")}
+				&appid={WeatherAPI}"
 			)
 			OpenWeather = Newtonsoft.Json.Linq.JObject.Parse(Buffer)
 		Catch ex As Net.WebException
-			MessageBox.Show("Network Error: " & ex.Message)
+			MessageBox.Show($"Network Error: {ex.Message}")
 			Return
 		Catch ex As Newtonsoft.Json.JsonException
-			MessageBox.Show("Error parsing the Data: " & ex.Message)
+			MessageBox.Show($"Error parsing the Data: {ex.Message}")
 			Return
 		Catch ex As Exception
-			MessageBox.Show("An Error occurred: " & ex.Message)
+			MessageBox.Show($"An Error occurred: {ex.Message}")
 			Return
 		End Try
 
@@ -190,7 +196,7 @@
 		Weather.Text = The_Weather
 		WeatherTemperature.Text = Temperature.ToString() & "°C"
 		WeatherDescription.Text = Description
-		WeatherLogo.ImageLocation = "http://openweathermap.org/img/w/" & WeatherIcon & ".png"
+		WeatherLogo.ImageLocation = $"http://openweathermap.org/img/w/{WeatherIcon}.png"
 
 	End Sub
 
@@ -402,8 +408,17 @@
 
 	Private Sub RecipeApp_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
 
-		Register?.Close()
-		TheLogin?.Close()
+		If Not DidSignOut Then
+			TheLogin.Close()
+		End If
+
+	End Sub
+
+	Private Sub SignOutToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SignOutToolStripMenuItem.Click
+
+		DidSignOut = True
+		TheLogin.Show()
+		Close()
 
 	End Sub
 

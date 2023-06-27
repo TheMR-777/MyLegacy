@@ -54,6 +54,7 @@ Partial Class RecipeApp
         Me.TopMenu = New System.Windows.Forms.MenuStrip()
         Me.RDLCReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ViewReportRDLC = New System.Windows.Forms.ToolStripMenuItem()
+        Me.SignOutToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.GroupBox5 = New System.Windows.Forms.GroupBox()
         Me.WeatherDescription = New System.Windows.Forms.Label()
         Me.Welcome = New System.Windows.Forms.Label()
@@ -337,18 +338,24 @@ Partial Class RecipeApp
         '
         'RDLCReportToolStripMenuItem
         '
-        Me.RDLCReportToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ViewReportRDLC})
+        Me.RDLCReportToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ViewReportRDLC, Me.SignOutToolStripMenuItem})
         Me.RDLCReportToolStripMenuItem.Font = New System.Drawing.Font("Segoe UI", 8.8!)
         Me.RDLCReportToolStripMenuItem.Margin = New System.Windows.Forms.Padding(5, 0, 0, 0)
         Me.RDLCReportToolStripMenuItem.Name = "RDLCReportToolStripMenuItem"
-        Me.RDLCReportToolStripMenuItem.Size = New System.Drawing.Size(107, 24)
-        Me.RDLCReportToolStripMenuItem.Text = "RDLC Report"
+        Me.RDLCReportToolStripMenuItem.Size = New System.Drawing.Size(66, 24)
+        Me.RDLCReportToolStripMenuItem.Text = "Action"
         '
         'ViewReportRDLC
         '
         Me.ViewReportRDLC.Name = "ViewReportRDLC"
-        Me.ViewReportRDLC.Size = New System.Drawing.Size(212, 26)
+        Me.ViewReportRDLC.Size = New System.Drawing.Size(224, 26)
         Me.ViewReportRDLC.Text = "View RDLC Report"
+        '
+        'SignOutToolStripMenuItem
+        '
+        Me.SignOutToolStripMenuItem.Name = "SignOutToolStripMenuItem"
+        Me.SignOutToolStripMenuItem.Size = New System.Drawing.Size(224, 26)
+        Me.SignOutToolStripMenuItem.Text = "Sign-Out"
         '
         'GroupBox5
         '
@@ -371,7 +378,7 @@ Partial Class RecipeApp
         Me.WeatherDescription.Name = "WeatherDescription"
         Me.WeatherDescription.Size = New System.Drawing.Size(226, 18)
         Me.WeatherDescription.TabIndex = 4
-        Me.WeatherDescription.Text = "clear sky"
+        Me.WeatherDescription.Text = "make sure to bring your umbrella"
         Me.WeatherDescription.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'Welcome
@@ -390,7 +397,7 @@ Partial Class RecipeApp
         Me.Weather.Name = "Weather"
         Me.Weather.Size = New System.Drawing.Size(226, 41)
         Me.Weather.TabIndex = 2
-        Me.Weather.Text = "Clear"
+        Me.Weather.Text = "Thunderstorm"
         Me.Weather.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'WeatherTemperature
@@ -400,7 +407,7 @@ Partial Class RecipeApp
         Me.WeatherTemperature.Name = "WeatherTemperature"
         Me.WeatherTemperature.Size = New System.Drawing.Size(150, 32)
         Me.WeatherTemperature.TabIndex = 1
-        Me.WeatherTemperature.Text = "32C"
+        Me.WeatherTemperature.Text = "27 C"
         Me.WeatherTemperature.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'WeatherLogo
@@ -490,4 +497,5 @@ Partial Class RecipeApp
     Friend WithEvents WeatherLogo As PictureBox
     Friend WithEvents WeatherDescription As Label
     Friend WithEvents Welcome As Label
+    Friend WithEvents SignOutToolStripMenuItem As ToolStripMenuItem
 End Class
