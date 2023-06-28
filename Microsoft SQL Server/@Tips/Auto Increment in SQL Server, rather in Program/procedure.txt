@@ -1,0 +1,4 @@
+- In the Table Design window, select the row
+- In the Table Properties window below, find "Identity Specification"
+- Un-nest it, and set (Is Identity) to Yes
+- Configure the settings as per needs

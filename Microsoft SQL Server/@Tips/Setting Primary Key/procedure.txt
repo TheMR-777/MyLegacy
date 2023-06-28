@@ -1,0 +1,2 @@
+- In Table Design mode in SSMS, select the row (actual column of the table)
+- In the top-right corner, select the 'Key' icon, to make it unique
