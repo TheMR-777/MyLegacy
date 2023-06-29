@@ -1,0 +1,2 @@
+- In the Table Design field, select the entry
+- In the Table Properties window, configure "Default Value or Binding"
