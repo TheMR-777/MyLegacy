@@ -1,4 +1,6 @@
-#include <iostream>
+#include <fmt/ranges.h>
+#include <fmt/std.h>
+#include <array>
 
 namespace my
 {
@@ -41,6 +43,16 @@ namespace my
 
 int main()
 {
-	constexpr auto r = my::modern::rank<int[][7][7][7]>;
-	constexpr auto x = my::modern::specialization_of<std::tuple<int>, std::tuple>;
+	using my_type = int[][7][7][7];
+	using my_spec = std::tuple<my_type>;
+
+	constexpr std::remove_all_extents_t<my_type> x[]
+	{
+		my::rank<my_type>,
+		my::is_specialization<my_spec, std::tuple>,
+		my::modern::rank<my_type>,
+		my::modern::specialization_of<my_spec, std::tuple>,
+	};
+
+	fmt::println("{}", x);
 }
