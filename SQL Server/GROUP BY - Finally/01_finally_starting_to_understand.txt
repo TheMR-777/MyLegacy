@@ -1,3 +1,5 @@
+-- LittleOne
+
 SELECT
 	CustomerID,
 	STRING_AGG(City, ', ')
