@@ -9,7 +9,7 @@ class JWTGenerator
         string kid = "pVMomQ1NwB6nKuSAxaQDM0PrBg0";
         string key_PEM = @"D:\PayUK\obsigning.key";
 
-        var my_payload = new Dictionary<string, Dictionary<string, string>>
+        var payload = new Dictionary<string, Dictionary<string, string>>
         {
             {
                 "Data", new Dictionary<string, string>
@@ -21,7 +21,6 @@ class JWTGenerator
                 }
             }
         };
-
         var headers = new Dictionary<string, object>
         {
             { "alg", "PS256" },
@@ -33,9 +32,10 @@ class JWTGenerator
             { "http://openbanking.org.uk/tan", "openbankingtest.org.uk" },
             { "crit", new string[] { "http://openbanking.org.uk/iat", "http://openbanking.org.uk/iss", "http://openbanking.org.uk/tan" } }
         };
-
-        var token = GenerateJWT(my_payload, headers, key_PEM);
-        Console.WriteLine(token);
+        var JWToken = GenerateJWT(payload, headers, key_PEM);
+        
+        var tokenParts = JWToken.Split('.');
+        Console.WriteLine(tokenParts[0] + ".." + tokenParts[2]);
     }
 
     /// <summary>
@@ -64,16 +64,12 @@ class JWTGenerator
 
         tokenHandler.OutboundClaimTypeMap.Clear();
         securityToken.Payload.Clear();
-        foreach (var entry in payload)
-        {
-            securityToken.Payload.Add(entry.Key, entry.Value);
-        }
+        foreach (var (key, value) in payload) 
+            securityToken.Payload.Add(key, value);
 
         securityToken.Header.Clear();
-        foreach (var entry in headers)
-        {
-            securityToken.Header.Add(entry.Key, entry.Value);
-        }
+        foreach (var (key, value) in headers)
+            securityToken.Header.Add(key, value);
 
         return tokenHandler.WriteToken(securityToken);
     }
