@@ -217,7 +217,7 @@ namespace TheProgram
 				// Decryption, with BouncyCastle
 				stopwatch.Restart();
 				var bocPlain = RSAwithBouncyCastle.Apply(
-					source: netCipher,
+					source: bocCipher,
 					key: ConvertKey.ToBouncyCastleKeys(netKey).Private,
 					toEncrypt: false
 				);
