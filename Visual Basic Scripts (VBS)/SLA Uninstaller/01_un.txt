@@ -1,0 +1,73 @@
+' Declare variables
+Dim objWMIService, objProcess, colProcess
+Dim strComputer, strProcessKill, strFolderDelete
+Dim objShell, intReturn
+
+' Set computer name to local
+strComputer = "."
+
+' Set process name to SLA.exe
+strProcessKill = "'SLA.exe'"
+
+' Create WMI object
+Set objWMIService = GetObject("winmgmts:" _
+& "{impersonationLevel=impersonate}!\\" _
+& strComputer & "\root\cimv2")
+
+' Query WMI for the process
+Set colProcess = objWMIService.ExecQuery _
+("Select * from Win32_Process Where Name = " & strProcessKill )
+
+' Loop through the process collection
+For Each objProcess in colProcess
+
+    ' Get the process location
+    strFolderDelete = objProcess.ExecutablePath
+
+    ' Remove the file name from the path
+    strFolderDelete = Left(strFolderDelete, InStrRev(strFolderDelete, "\"))
+
+    ' Show a message that the process is found and will be terminated
+    WScript.Echo "Found process " & strProcessKill & " at " & objProcess.ExecutablePath & ". Terminating..."
+
+    ' Terminate the process
+    objProcess.Terminate()
+
+Next
+
+' Check if the process collection is empty
+If colProcess.Count = 0 Then
+
+    ' Show a message that the process is not found
+    WScript.Echo "Process " & strProcessKill & " not found."
+
+Else
+
+    ' Create Shell object
+    Set objShell = CreateObject("WScript.Shell")
+
+    ' Show a message that the folder will be deleted
+    WScript.Echo "Deleting folder " & strFolderDelete & "..."
+
+    ' Delete the folder using cmd command
+    intReturn = objShell.Run("cmd /c RD /S /Q """ & strFolderDelete & """", 0, True)
+
+    ' Check if the command was successful
+    If intReturn = 0 Then
+
+        ' Show a message that the folder was deleted
+        WScript.Echo "Folder " & strFolderDelete & " deleted successfully."
+
+    Else
+
+        ' Show a message that there was an error deleting the folder
+        WScript.Echo "Error deleting folder " & strFolderDelete & ". Error code: " & intReturn
+
+    End If
+
+End If
+
+' Release objects
+Set objWMIService = Nothing
+Set colProcess = Nothing
+Set objShell = Nothing
