@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+			 x:Class="X_App.MainPage">
+	<StackLayout 
+        BindingContext=
+        "{
+            Reference my_slider
+        }"
+		HorizontalOptions="CenterAndExpand"
+		VerticalOptions="Center" >
+        
+        <Label 
+            Opacity=
+            "{
+                Binding Value
+            }"
+            HorizontalOptions="Center"
+            Text=
+            "{
+                Binding Value,
+                StringFormat='Value: {0:F2}'
+            }" />
+        <Slider 
+            x:Name="my_slider" 
+            Minimum="0"
+            Maximum="1"
+            HorizontalOptions="CenterAndExpand"
+            WidthRequest="500" />
+
+    </StackLayout>
+</ContentPage>
