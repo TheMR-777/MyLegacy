@@ -1,0 +1,18 @@
+public MainPage()
+{
+	var boxView = new BoxView
+	{
+		Color = Device.RuntimePlatform switch
+		{
+            Device.iOS		=> Color.FromHex("#FFFFFF"),
+            Device.Android	=> Color.FromHex("#38df88"),
+            Device.UWP		=> Color.FromHex("#36a6d5"),
+            _				=> Color.FromHex("#FFFFFF")
+        },
+        HeightRequest = 100,
+        HorizontalOptions = LayoutOptions.FillAndExpand,
+        VerticalOptions = LayoutOptions.Start
+    };
+
+	my_page.Children.Insert(0, boxView);
+}
