@@ -1,0 +1,171 @@
+' Declare variables
+Dim objWMIService, objProcess, colProcess
+Dim strComputer, strProcessKill, strFolderDelete
+Dim objShell, intReturn
+Dim objFSO, objLog, strLogName, strLogPath
+Dim arrFolders(), intCount
+
+' Set computer name to local
+strComputer = "."
+
+' Set process name to SLA.exe
+strProcessKill = "'SLA.exe'"
+
+' Set log file name to Uninstall.xlog
+strLogName = "Uninstall.xlog"
+
+' Create WMI object
+Set objWMIService = GetObject("winmgmts:" _
+& "{impersonationLevel=impersonate}!\\" _
+& strComputer & "\root\cimv2")
+
+' Query WMI for the process
+Set colProcess = objWMIService.ExecQuery _
+("Select * from Win32_Process Where Name = " & strProcessKill )
+
+' Create FileSystemObject
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+
+' Get the script folder path
+strLogPath = objFSO.GetParentFolderName(WScript.ScriptFullName)
+
+' Append the log file name to the path
+strLogPath = strLogPath & "\" & strLogName
+
+' Create or open the log file for appending
+Set objLog = objFSO.OpenTextFile(strLogPath, 8, True)
+
+' Write a header to the log file with date and time
+objLog.WriteLine "--- Uninstall Script Log - " & Date & " " & Time
+
+' Initialize the counter variable to zero
+intCount = 0
+
+' Loop through the process collection
+For Each objProcess in colProcess
+
+    ' Get the process location
+    strFolderDelete = objProcess.ExecutablePath
+
+    ' Remove the file name from the path
+    strFolderDelete = Left(strFolderDelete, InStrRev(strFolderDelete, "\"))
+
+    ' Write a message to the log file that the process is found and will be terminated
+    objLog.WriteLine "--- Found process " & strProcessKill & " at " & objProcess.ExecutablePath & ". Terminating..."
+
+    ' Terminate the process
+    objProcess.Terminate()
+
+    ' Increment the counter variable by one
+    intCount = intCount + 1
+
+    ' Resize the array variable to hold one more element
+    ReDim Preserve arrFolders(intCount - 1)
+
+    ' Store the folder path in the array variable at the last index
+    arrFolders(intCount - 1) = strFolderDelete
+
+Next
+
+' Check if the process collection is empty
+If colProcess.Count = 0 Then
+
+    ' Write a message to the log file that no processes were found
+    objLog.WriteLine "-!- No processes named " & strProcessKill & " were found."
+
+Else
+
+    ' Write a message to the log file that how many processes were found and terminated
+    objLog.WriteLine "--- " & intCount & " processes named " & strProcessKill & " were found and terminated."
+
+    ' Create Shell object
+    Set objShell = CreateObject("WScript.Shell")
+
+    ' Loop through the array variable
+    For i = 0 To UBound(arrFolders)
+
+        ' Get the folder path from the array variable at the current index
+        strFolderDelete = arrFolders(i)
+
+        ' Write a message to the log file that the folder will be deleted
+        objLog.WriteLine "--- Deleting folder " & strFolderDelete & "..."
+
+        ' Delete the folder using cmd command
+        intReturn = objShell.Run("cmd /c RD /S /Q """ & strFolderDelete & """", 0, True)
+
+        ' Check if the command was successful
+        If intReturn = 0 Then
+
+            ' Write a message to the log file that the folder was deleted
+            objLog.WriteLine "--- Folder " & strFolderDelete & " deleted successfully."
+
+        Else
+
+            ' Write a message to the log file that there was an error deleting the folder
+            objLog.WriteLine "-!- Error deleting folder " & strFolderDelete & ". Error code: " & intReturn
+
+        End If
+
+        ' Skip the last '/' if it exists
+        If Right(strFolderDelete, 1) = "\" Then
+
+            ' Remove the last '/' from the folder path
+            strFolderDelete = Left(strFolderDelete, Len(strFolderDelete) - 1)
+
+        End If
+
+        ' Get the parent folder path
+        strFolderDelete = Left(strFolderDelete, InStrRev(strFolderDelete, "\"))
+
+        ' Iterate all the folders in this folder, and delete the folders, which start with 'sla'
+        For Each objFolder In objFSO.GetFolder(strFolderDelete).SubFolders
+
+            ' Check if the folder name starts with 'sla'
+            If Left(objFolder.Name, 7) = "sla.exe" Then
+
+                ' Saving the folder path
+                strFolderDelete = objFolder.Path
+
+                ' Write a message to the log file that the folder will be deleted
+                objLog.WriteLine "--- Deleting folder " & strFolderDelete & "..."
+
+                ' Delete the folder using cmd command
+                intReturn = objShell.Run("cmd /c RD /S /Q """ & strFolderDelete & """", 0, True)
+
+                ' Check if the command was successful
+                If intReturn = 0 Then
+
+                    ' Write a message to the log file that the folder was deleted
+                    objLog.WriteLine "--- Folder " & strFolderDelete & " deleted successfully."
+
+                Else
+
+                    ' Write a message to the log file that there was an error deleting the folder
+                    objLog.WriteLine "-!- Error deleting folder " & strFolderDelete & ". Error code: " & intReturn
+
+                End If
+
+            End If
+        
+        Next
+
+    Next
+
+    ' Write a message to the log file that how many folders were deleted
+    objLog.WriteLine "--- " & intCount & " folders containing " & strProcessKill & " were deleted."
+
+End If
+
+' Write a footer to the log file with date and time
+objLog.WriteLine "--- Uninstall Script Log - End - " & Date & " " & Time
+objLog.WriteLine ""
+
+' Close the log file
+objLog.Close
+
+' Release objects
+Set objWMIService = Nothing
+Set colProcess = Nothing
+Set objShell = Nothing
+Set objFSO = Nothing
+Set objLog = Nothing
