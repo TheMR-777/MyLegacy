@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+			 x:Class="X_App.MainPage">
+    <StackLayout
+        VerticalOptions="Center"
+        HorizontalOptions="Center">
+
+        <Button
+            x:Name="my_button"
+            Text="Advance"
+            Clicked="my_button_Clicked"/>
+
+        <Label HorizontalOptions="Center">
+            <Label.FormattedText>
+                <FormattedString>
+                    <Span Text="My prime: " />
+                    <Span 
+                        x:Name="my_prime_f"
+                        Text="x" 
+                        FontSize=
+                        "{
+                            Binding Source={x:Reference my_slider}, 
+                            Path=Value
+                        }"
+                        FontAttributes="Bold" />
+                </FormattedString>
+            </Label.FormattedText>
+        </Label>
+
+        <Slider
+            x:Name="my_slider"
+            WidthRequest="500"
+            Maximum="40"
+            Minimum="10"
+            Value="15" />
+
+    </StackLayout>
+</ContentPage>
