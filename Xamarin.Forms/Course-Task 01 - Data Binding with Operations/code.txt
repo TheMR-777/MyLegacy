@@ -1,0 +1,24 @@
+using System.IO;
+using System.Linq;
+using Xamarin.Forms;
+
+namespace X_App
+{
+    public partial class MainPage : ContentPage
+	{
+        private readonly int[] primes = { 2, 3, 5, 7, 11, 13, 17, 19 };
+        private int i = 0;
+
+		public MainPage()
+		{
+			InitializeComponent();
+            my_prime_f.Text = primes.First().ToString();
+		}
+
+        private void my_button_Clicked(object sender, System.EventArgs e)
+        {
+            i = (i + 1) % primes.Length;
+            my_prime_f.Text = primes[i].ToString();
+        }
+    }
+}
