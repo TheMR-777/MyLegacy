@@ -1,0 +1,9 @@
+<!-- Shows the Platform in Label -->
+<Label HorizontalOptions="Center">
+    <Label.FormattedText>
+        <FormattedString>
+            <Span Text="You are on " />
+            <Span Text="{Binding Source={x:Static Device.RuntimePlatform}}" />
+        </FormattedString>
+    </Label.FormattedText>
+</Label>
