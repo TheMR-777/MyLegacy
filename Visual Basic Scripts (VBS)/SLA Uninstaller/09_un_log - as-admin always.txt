@@ -1,0 +1,109 @@
+' Declare variables
+Dim objWMIService, objProcess, colProcess
+Dim strProcessKill, str2ndSLALoc, strFolderDelete, message
+Dim objShell, intReturn
+Dim objFSO, objLog, strLogName, strLogPath
+Dim arrFolders(), intCount
+
+strProcessKill = "'SLA.exe'"
+strLogName = "Uninstall.log"
+Set objShell = CreateObject("WScript.Shell")
+str2ndSLALoc = objShell.ExpandEnvironmentStrings("%APPDATA%") & "\SLA"
+
+Set objWMIService = GetObject("winmgmts:" _
+& "{impersonationLevel=impersonate}!\\" _
+& "." & "\root\cimv2")
+Set colProcess = objWMIService.ExecQuery("Select * from Win32_Process Where Name = " & strProcessKill )
+
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+strLogPath = objFSO.GetParentFolderName(WScript.ScriptFullName) & "\" & strLogName
+Set objLog = objFSO.OpenTextFile(strLogPath, 8, True)
+
+objLog.WriteLine "|"
+objLog.WriteLine "——— SLA Uninstallation Log —[ Open ]— " & Date & " " & Time
+
+If Not WScript.Arguments.Named.Exists("elevate") Then
+    message = "The script is not running as Administrator"
+    objLog.WriteLine "-x- " & message
+    intReturn = objShell.Popup(message, 0, "SLA Uninstallation", 64)
+
+    Set objShell = CreateObject("Shell.Application")
+    objLog.WriteLine "——— Restarting with elevated privileges..."
+    objShell.ShellExecute "wscript.exe", """" & WScript.ScriptFullName & """ /elevate", "", "runas", 1
+
+    WScript.Quit
+End If
+
+intCount = 0
+For Each objProcess in colProcess
+    strFolderDelete = objProcess.ExecutablePath
+    strFolderDelete = Left(strFolderDelete, InStrRev(strFolderDelete, "\"))
+
+    objLog.WriteLine "——— Found process: " & strProcessKill & " at " & objProcess.ExecutablePath & ". Terminating..."
+    objProcess.Terminate()
+
+    intCount = intCount + 1
+    ReDim Preserve arrFolders(intCount - 1)
+    arrFolders(intCount - 1) = strFolderDelete
+Next
+
+If colProcess.Count = 0 Then
+    objLog.WriteLine "-x- No processes named " & strProcessKill & " were found."
+Else
+    objLog.WriteLine "——— Found " & intCount & " process(es) named " & strProcessKill & " and terminated."
+
+    For i = 0 To UBound(arrFolders)
+        strFolderDelete = arrFolders(i)
+
+        objLog.WriteLine "——— Attempting to Delete: " & strFolderDelete & "..."
+        intReturn = objShell.Run("cmd /c RD /S /Q """ & strFolderDelete & """", 0, True)
+
+        If intReturn = 0 Then
+            objLog.WriteLine "——— Successfully Deleted: " & strFolderDelete
+        Else
+            objLog.WriteLine "-x- Error deleting folder " & strFolderDelete & ". Error code: " & intReturn
+        End If
+
+        If Right(strFolderDelete, 1) = "\" Then
+            strFolderDelete = Left(strFolderDelete, Len(strFolderDelete) - 1)
+        End If
+
+        strFolderDelete = Left(strFolderDelete, InStrRev(strFolderDelete, "\"))
+
+        For Each objFolder In objFSO.GetFolder(strFolderDelete).SubFolders
+            If Left(objFolder.Name, 7) = "sla.exe" Then
+                strFolderDelete = objFolder.Path
+
+                objLog.WriteLine "——— Attempting to Delete: " & strFolderDelete & "..."
+                intReturn = objShell.Run("cmd /c RD /S /Q """ & strFolderDelete & """", 0, True)
+
+                If intReturn = 0 Then
+                    objLog.WriteLine "——— Successfully Deleted: " & strFolderDelete
+                Else
+                    objLog.WriteLine "-x- Error deleting folder " & strFolderDelete & ". Error code: " & intReturn
+                End If
+            End If
+        Next
+    Next
+    objLog.WriteLine "——— Deleted " & intCount & " folder(s) containing " & strProcessKill
+End If
+
+If objFSO.FolderExists(str2ndSLALoc) Then
+    objLog.WriteLine "——— Attempting to Delete: " & str2ndSLALoc & "..."
+    intReturn = objShell.Run("cmd /c RD /S /Q """ & str2ndSLALoc & """", 0, True)
+
+    If intReturn = 0 Then
+        objLog.WriteLine "——— Successfully Deleted: " & str2ndSLALoc
+    Else
+        objLog.WriteLine "-x- Error deleting folder " & str2ndSLALoc & ". Error code: " & intReturn
+    End If
+End If
+
+objLog.WriteLine "——— SLA Uninstallation Log —[ Exit ]— " & Date & " " & Time
+objLog.Close
+
+Set objWMIService = Nothing
+Set colProcess = Nothing
+Set objShell = Nothing
+Set objFSO = Nothing
+Set objLog = Nothing
