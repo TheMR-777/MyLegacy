@@ -33,7 +33,7 @@ If Not WScript.Arguments.Named.Exists("elevate") Then
     intReturn = objShell.Popup(message, 0, "SLA Uninstallation", 64)
 
     Set objShell = CreateObject("Shell.Application")
-    objLog.WriteLine "——— Restarting with elevated privileges..."
+    objLog.WriteLine "——— SLA Uninstallation Log —[ Exit ]— Restarting with elevated privileges..."
     objShell.ShellExecute "wscript.exe", """" & WScript.ScriptFullName & """ /elevate", "", "runas", 1
 
     WScript.Quit
