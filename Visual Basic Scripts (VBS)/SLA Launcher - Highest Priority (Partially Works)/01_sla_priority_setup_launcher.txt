@@ -1,0 +1,5 @@
+Dim UAC, MyPath, YrPath
+MyPath = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
+YrPath = MyPath & "\Data\setup.exe"
+Set UAC = CreateObject("Shell.Application")
+UAC.ShellExecute YrPath, YrPath & " /elevate", "", "runas", 1
