@@ -1,0 +1,81 @@
+// CS File
+
+using System.IO;
+using System.Linq;
+using Xamarin.Forms;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace X_App
+{
+    public partial class MainPage : ContentPage
+	{
+        public static string SHA_256(string input)
+        {
+            using SHA256 sha256Hash = SHA256.Create();
+            var bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
+            return string.Concat(bytes.Select(x => x.ToString("x2")));
+        }
+
+        public MainPage()
+		{
+			InitializeComponent();
+		}
+
+        private void Slider_ValueChanged(object sender, ValueChangedEventArgs e)
+        {
+            Output.Text = SHA_256(Input.Text);
+        }
+    }
+}
+
+<!--- XAML File --->
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+			 x:Class="X_App.MainPage">
+	<!-- Prime Numbers on Cycle -->
+    <StackLayout
+		HorizontalOptions="Center"
+		VerticalOptions="Center">
+        
+        <!-- The Banner -->
+        <Label
+            Text="The Demo of SHA-256"
+            FontSize="Large"
+            HorizontalOptions="Center"
+            VerticalOptions="CenterAndExpand" />
+        
+        <!-- Number Display -->
+        <Label
+            x:Name="Input"
+            Text=
+            "{
+                Binding Source={x:Reference Slider},
+                Path=Value
+            }"
+            FontSize="Medium"
+            HorizontalOptions="Center"
+            VerticalOptions="CenterAndExpand" />
+        
+        <!-- Slider -->
+        <Slider
+            x:Name="Slider"
+            Maximum="100"
+            Minimum="1"
+            Value="47"
+            ValueChanged="Slider_ValueChanged"
+            WidthRequest="300"
+            HorizontalOptions="Center"
+            VerticalOptions="CenterAndExpand" />
+        
+        <!-- Output Display -->
+        <Label
+            x:Name="Output"
+            Text=""
+            FontSize="Caption"
+            HorizontalOptions="Center"
+            VerticalOptions="CenterAndExpand" />
+
+    </StackLayout>
+</ContentPage>
