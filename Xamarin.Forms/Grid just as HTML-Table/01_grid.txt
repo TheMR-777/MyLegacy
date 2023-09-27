@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+			 x:Class="X_App.MainPage">
+
+    <!-- Just Nice looking Tiles -->
+    <Grid 
+        ColumnSpacing="10"
+        RowSpacing="10"
+        BackgroundColor="BlanchedAlmond">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Sample Tile 01 -->
+        <Label
+            BackgroundColor="DarkSlateGray"
+            Grid.Row="0"
+            Grid.Column="0"
+            Text="L1"
+            HorizontalOptions="FillAndExpand"
+            VerticalOptions="FillAndExpand" />
+        
+        <!-- Sample Tile 02 -->
+        <Label
+            BackgroundColor="DarkSlateGray"
+            Grid.Row="0"
+            Grid.Column="1"
+            Text="L2"
+            HorizontalOptions="FillAndExpand"
+            VerticalOptions="FillAndExpand" />
+        
+        <!-- Sample Tile 03 -->
+        <Label
+            BackgroundColor="DarkSlateGray"
+            Grid.Row="1"
+            Grid.Column="0"
+            Text="L3"
+            HorizontalOptions="FillAndExpand"
+            VerticalOptions="FillAndExpand" />
+        
+        <!-- Sample Tile 04 -->
+        <Label
+            BackgroundColor="DarkSlateGray"
+            Grid.Row="1"
+            Grid.Column="1"
+            Grid.RowSpan="2"
+            Text="L4"
+            HorizontalOptions="FillAndExpand"
+            VerticalOptions="FillAndExpand" />
+        
+        <!-- Sample Tile 05 -->
+        <Label
+            BackgroundColor="DarkSlateGray"
+            Grid.Row="2"
+            Grid.Column="0"
+            Text="L5"
+            HorizontalOptions="FillAndExpand"
+            VerticalOptions="FillAndExpand" />
+
+        <!-- Sample Tile 06 -->
+        <Label
+            BackgroundColor="DarkSlateGray"
+            Grid.Row="3"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Text="L6"
+            HorizontalOptions="FillAndExpand"
+            VerticalOptions="FillAndExpand" />
+
+    </Grid>
+
+</ContentPage>
