@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SLA_Migration_Try02.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:SLA_Migration_Try02.Views"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
+        x:Class="SLA_Migration_Try02.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+		
+		Width="10000"
+		Height="10000"
+		
+		WindowState="FullScreen"
+		CanResize="False"
+		ExtendClientAreaTitleBarHeightHint="0"
+		Focusable="True"
+		HorizontalAlignment="Center"
+		HorizontalContentAlignment="Center"
+		VerticalAlignment="Center"
+		VerticalContentAlignment="Center"
+		ShowInTaskbar="False"
+		Topmost="True"
+		TransparencyBackgroundFallback="BlanchedAlmond"
+		UseLayoutRounding="True"
+		ShowActivated="True"
+		ZIndex = "10000"
+		
+		TransparencyLevelHint="Mica"
+		Background="{x:Null}"
+		ExtendClientAreaToDecorationsHint="True"
+		ExtendClientAreaChromeHints="PreferSystemChrome"
+        Title="SLA_Migration_Try02">
+	
+	<Window.ContextMenu>
+		<ContextMenu>
+			<MenuItem Header="About"/>
+			<MenuItem Header="Login"/>
+		</ContextMenu>
+	</Window.ContextMenu>
+	
+	<!-- Real Work -->
+	<StackPanel 
+		Spacing="15">
+		<TextBlock 
+			Text="Welcome!"
+			HorizontalAlignment="Center"/>
+		<Button 
+			Name="CloseButton" 
+			Padding="30, 15"
+			HorizontalAlignment="Center"
+			FontFamily="Cascadia Mono"
+			Content="Login - 00:00:00"/>
+	</StackPanel>
+</Window>
