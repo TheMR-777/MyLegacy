@@ -1,0 +1,171 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SLA_Migration_Try02.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:SLA_Migration_Try02.Views"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
+        x:Class="SLA_Migration_Try02.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+		
+		Width="10000"
+		Height="10000"
+		
+		WindowState="FullScreen"
+		CanResize="False"
+		ExtendClientAreaTitleBarHeightHint="0"
+		Focusable="True"
+		HorizontalAlignment="Center"
+		HorizontalContentAlignment="Center"
+		VerticalAlignment="Center"
+		VerticalContentAlignment="Center"
+		ShowInTaskbar="False"
+		SystemDecorations="None"
+		Topmost="True"
+		TransparencyBackgroundFallback="#202020"
+		UseLayoutRounding="True"
+		ShowActivated="True"
+		ZIndex = "10000"
+		
+		TransparencyLevelHint="Mica"
+		Background="{x:Null}"
+		ExtendClientAreaToDecorationsHint="True"
+		ExtendClientAreaChromeHints="PreferSystemChrome"
+        Title="SLA Remastered">
+	
+	<Window.ContextMenu>
+		<ContextMenu>
+			<MenuItem Header="About"/>
+			<MenuItem Header="Login"/>
+		</ContextMenu>
+	</Window.ContextMenu>
+	
+	<!-- Real Work -->
+	<StackPanel 
+		Spacing="15">
+
+		<!-- Bordered Container -->
+		<Border 
+			BorderThickness="2" 
+			BorderBrush="#2a2a2a" 
+			Padding="0,15,0,0"
+			CornerRadius="5,5,0,0">
+			<!-- Extra Box to cover the bottom border -->
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition/>
+					<RowDefinition/>
+					<RowDefinition Height="0"/>
+				</Grid.RowDefinitions>
+				
+				<!-- Banner -->
+				<TextBlock
+					Grid.Row="0"
+					Text="Recording Break"
+					Margin="0,15"
+					HorizontalAlignment="Center"
+					FontFamily="Segoe UI"
+					FontSize="25"
+					FontWeight="Bold"
+					Foreground="#FFFFFFFF"/>
+
+				<!-- Beautiful Divider -->
+				<Image
+					Grid.Row="1"
+					Margin="0,15"
+					Source="/Assets/image.png"
+					Width="500"
+					VerticalAlignment="Center"
+					HorizontalAlignment="Center"/>
+
+				<!-- This is the extra control to cover the bottom border -->
+				<Rectangle Fill="#202020" Grid.Row="2" Height="5"/>
+			</Grid>
+		</Border>
+		
+		<!-- Guide Hint -->
+		<Border
+			Name="NewComerGuide"
+			CornerRadius="5"
+			Background="#2b2b2b"
+			Padding="15">
+
+			<TextBlock
+				HorizontalAlignment="Center"
+				FontFamily="Segoe UI"
+				FontSize="14"
+				Foreground="#FFFFFFFF"
+				Text="Please select the break type from below, and Login"/>
+			
+		</Border>
+		
+		<!-- Reasons List -->
+		<ListBox
+			Name="ReasonsBox"
+			ItemsSource="{Binding ReasonsAll}"
+			CornerRadius="5"
+			SelectedIndex="0"
+			Padding="10">
+
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<!-- <TextBlock Text="{Binding Value}"/> -->
+					<!-- Value starting from right, and • on right -->
+					<StackPanel Orientation="Horizontal">
+						<TextBlock 
+							Text="{Binding Value}" 
+							Margin="0,0,10,0"/>
+						<TextBlock 
+							Text="•"
+							Foreground="#3a3a3a"
+							IsVisible="{Binding Key}"/>
+					</StackPanel>
+			</DataTemplate>
+			</ListBox.ItemTemplate>
+
+			<ListBox.ItemsPanel>
+				<ItemsPanelTemplate>
+					<UniformGrid Columns="2"/>
+				</ItemsPanelTemplate>
+			</ListBox.ItemsPanel>
+
+		</ListBox>
+		
+		<!-- Reason Detail Input -->
+		<TextBox
+			Name="txtReasonDetail"
+			Watermark="Please enter details here"
+			ToolTip.Tip="Detail is required for the selected break-type"
+			IsVisible="False"
+			CornerRadius="5"
+			VerticalContentAlignment="Center"
+			Padding="20,5"
+			Height="50"
+			BorderThickness="0.5"
+			BorderBrush="#3a3a3a"
+			Background="#2b2b2b"
+			Foreground="#FFFFFFFF"
+			FontFamily="Segoe UI"
+			FontSize="15"
+			MaxLength="100"
+			AcceptsReturn="True"
+			AcceptsTab="True"
+			MaxLines="1"
+			MaxWidth="700"
+			IsReadOnly="False" />
+		
+		<!-- Login Button -->
+		<Button 
+			Name="CloseButton" 
+			Background="#3a3a3a"
+			ToolTip.Tip="Login to continue"
+			IsEnabled="False"
+			Padding="30, 17"
+			CornerRadius="5"
+			HorizontalContentAlignment="Center"
+			HorizontalAlignment="Stretch"
+			FontFamily="Cascadia Mono"
+			Content="Login - 00:00:00"/>
+		
+	</StackPanel>
+</Window>
