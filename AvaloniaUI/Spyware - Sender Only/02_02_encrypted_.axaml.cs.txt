@@ -1,0 +1,93 @@
+using Avalonia.Controls;
+using NAudio.Wave;
+using System;
+using System.Net.Sockets;
+using System.Security.Cryptography;
+
+namespace AudioSend_AVA
+{
+    public partial class MainWindow : Window
+    {
+        private const string raw_key = "06+bPn7ht6TB3o92Oz/avPc5zL/KH29tBhPJNOUGZs8=";
+        private static readonly Aes aes_engine = Aes.Create();
+        private readonly ICryptoTransform enc_engine;
+
+        private const string target_ip =
+            //"localhost";
+            "192.168.0.188";
+        private const int port_to_forward = 4774;
+
+
+        private static readonly UdpClient udp_client_broad = new();
+        private static readonly WaveInEvent capture_device = new()
+        {
+            WaveFormat = new WaveFormat(44100, 16, 2)
+        };
+
+        private bool Recording
+        {
+            set
+            {
+                CastButton.IsEnabled = !value;
+                StopButton.IsEnabled = value;
+            }
+        }
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            // Encryption Setup
+            {
+                aes_engine.Key = Convert.FromBase64String(raw_key);
+                aes_engine.Mode = CipherMode.ECB;
+                aes_engine.Padding = PaddingMode.PKCS7;
+                enc_engine = aes_engine.CreateEncryptor();
+            }
+
+            CastButton.Click += CastButton_Click;
+            StopButton.Click += StopButton_Click;
+
+            capture_device.DataAvailable += CaptureDevice_DataAvailable;
+            Closing += Window_Closing;
+        }
+
+        private void CastButton_Click(object? _, object __)
+        {
+            Recording = true;
+            capture_device.StartRecording();
+        }
+
+        private void StopButton_Click(object? _, object __)
+        {
+            Recording = false;
+            capture_device.StopRecording();
+        }
+
+        private void CaptureDevice_DataAvailable(object? _, WaveInEventArgs data)
+        {
+            // Raw:
+            // udp_client_broad.Send(data.Buffer, data.BytesRecorded, target_ip, port_to_forward);
+
+            // Encrypted:
+            var encrypted = Encrypt(data.Buffer);
+            udp_client_broad.Send(encrypted, encrypted.Length, target_ip, port_to_forward);
+        }
+
+        private void Window_Closing(object? _, object __)
+        {
+            capture_device.StopRecording();
+            capture_device.Dispose();
+            udp_client_broad.Close();
+            udp_client_broad.Dispose();
+
+            aes_engine.Dispose();
+            enc_engine.Dispose();
+        }
+
+        public byte[] Encrypt(byte[] input)
+        {
+            return enc_engine.TransformFinalBlock(input, 0, input.Length);
+        }
+    }
+}
