@@ -1,0 +1,63 @@
+using Avalonia.Controls;
+using System.IO;
+using System;
+using NAudio.Wave;
+
+namespace AudioTest_AVA
+{
+	public partial class MainWindow : Window
+	{
+		public readonly static string path_o = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "NAudio");
+		public readonly static string file_o = Path.Combine(path_o, "recorded.wav");
+
+		private static bool is_app_closing_now = false;
+		private static WaveInEvent wave_device = new();
+		private static WaveFileWriter? writer_o;
+
+		public MainWindow()
+		{
+			InitializeComponent();
+			Directory.CreateDirectory(path_o);
+
+			// Audio-Device Settings
+			{
+                wave_device.DataAvailable += (_, e) =>
+                {
+                    writer_o?.Write(e.Buffer, 0, e.BytesRecorded);
+                };
+
+                wave_device.RecordingStopped += (_, _) =>
+                {
+                    writer_o?.Dispose();
+
+					if (is_app_closing_now)
+						wave_device.Dispose();
+                };
+            }
+
+            // Event-Handlers
+			{
+                PlayButton.Click += (_, _) =>
+                {
+                    PlayButton.IsEnabled = false;
+                    StopButton.IsEnabled = true;
+                    writer_o = new WaveFileWriter(file_o, wave_device.WaveFormat);
+                    wave_device.StartRecording();
+                };
+
+                StopButton.Click += (_, _) =>
+                {
+                    PlayButton.IsEnabled = true;
+                    StopButton.IsEnabled = false;
+                    wave_device.StopRecording();
+                };
+
+                Closing += (_, _) =>
+                {
+                    is_app_closing_now = true;
+                    wave_device.StopRecording();
+                };
+            }
+		}
+	}
+}
