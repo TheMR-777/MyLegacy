@@ -1,0 +1,94 @@
+using Avalonia.Controls;
+using Microsoft.VisualBasic;
+using NAudio.Wave;
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace AudioListen_AVA
+{
+    public partial class MainWindow : Window
+    {
+        private const int listen_port = 4774;
+
+        private static readonly WaveOutEvent listen_device = new();
+        private static readonly UdpClient udp_client = new(listen_port);
+        private static readonly BufferedWaveProvider buffered_wave_provider = new(new WaveFormat(44100, 16, 2));
+
+        private static CancellationTokenSource cancel_token_source = new();
+        private MemoryStream data_stream = new();
+
+        private bool Listening
+        {
+            set
+            {
+                HearButton.IsEnabled = !value;
+                StopButton.IsEnabled = value;
+            }
+        }
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            HearButton.Click += HearButton_Click;
+            StopButton.Click += StopButton_Click;
+
+            listen_device.Init(buffered_wave_provider);
+        }
+
+        private void HearButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Listening = true;
+            listen_device.Play();
+            cancel_token_source = new CancellationTokenSource();
+            data_stream = new MemoryStream(); // reset the memory stream
+            Task.Run(() => ListenForAudio(cancel_token_source.Token), cancel_token_source.Token);
+        }
+
+        private void StopButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Listening = false;
+            listen_device.Stop();
+            if (!cancel_token_source?.IsCancellationRequested ?? false)
+                cancel_token_source?.Cancel();
+
+            // Save the received audio data to a file
+            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string fileDirectory = Path.Combine(desktopPath, "NAudio");
+
+            Directory.CreateDirectory(fileDirectory);
+
+            string filename = Path.Combine(fileDirectory, $"recording_{DateTime.Now:yyyyMMdd_HHmmss}.wav");
+            using (var writer = new WaveFileWriter(filename, buffered_wave_provider.WaveFormat))
+            {
+                writer.Write(data_stream.ToArray(), 0, (int)data_stream.Length);
+            }
+
+            data_stream.Dispose();
+        }
+
+        private void ListenForAudio(CancellationToken cancellationToken)
+        {
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, listen_port);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                byte[] buffer = udp_client.Receive(ref endPoint);
+                data_stream.Write(buffer, 0, buffer.Length); // Save a copy in memory stream
+                buffered_wave_provider.AddSamples(buffer, 0, buffer.Length);
+            }
+        }
+
+        private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            listen_device.Dispose();
+            udp_client.Close();
+            udp_client.Dispose();
+            if (!cancel_token_source?.IsCancellationRequested ?? false)
+                cancel_token_source?.Cancel();
+        }
+    }
+}
