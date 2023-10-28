@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="130"
+        x:Class="AudioListen_AVA.MainWindow"
+		
+		WindowStartupLocation="CenterScreen"
+		Width="300"
+		Height="130"
+        Title="The Listener">
+
+	<!-- Buttons for Broadcast and Stop -->
+	<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="15">
+		<Button Name="HearButton" Content="Start Listening" Padding="20"/>
+		<Button Name="StopButton" Content="Stop" Padding="20"/>
+	</StackPanel>
+	
+</Window>
