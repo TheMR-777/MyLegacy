@@ -1,0 +1,65 @@
+using Avalonia.Controls;
+using NAudio.Wave;
+using System.Net.Sockets;
+
+namespace AudioSend_AVA
+{
+    public partial class MainWindow : Window
+    {
+        private const string target_ip =
+            //"localhost";
+            "192.168.0.188";
+        private const int port_to_forward = 4774;
+
+        private static readonly WaveInEvent capture_device = new()
+        {
+            WaveFormat = new WaveFormat(44100, 16, 2)
+        };
+        private static readonly UdpClient udp_client = new();
+
+        private bool Recording
+        {
+            set
+            {
+                CastButton.IsEnabled = !value;
+                StopButton.IsEnabled = value;
+            }
+        }
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            CastButton.Click += CastButton_Click;
+            StopButton.Click += StopButton_Click;
+
+            capture_device.DataAvailable += CaptureDevice_DataAvailable;
+            Closing += Window_Closing;
+        }
+
+        private void CastButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Recording = true;
+            capture_device.StartRecording();
+        }
+
+        private void StopButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Recording = false;
+            capture_device.StopRecording();
+        }
+
+        private void CaptureDevice_DataAvailable(object? sender, WaveInEventArgs e)
+        {
+            udp_client.Send(e.Buffer, e.BytesRecorded, target_ip, port_to_forward);
+        }
+
+        private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            capture_device.StopRecording();
+            capture_device.Dispose();
+            udp_client.Close();
+            udp_client.Dispose();
+        }
+    }
+}
