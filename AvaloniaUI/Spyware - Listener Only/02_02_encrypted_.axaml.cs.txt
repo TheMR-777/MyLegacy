@@ -1,0 +1,110 @@
+using Avalonia;
+using Avalonia.Controls;
+using NAudio.Wave;
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace AudioListen_AVA
+{
+    public partial class MainWindow : Window
+    {
+        private const string raw_key = "06+bPn7ht6TB3o92Oz/avPc5zL/KH29tBhPJNOUGZs8=";
+        private static readonly Aes aes_engine = Aes.Create();
+        private readonly ICryptoTransform dec_engine;
+
+        private const int listen_port = 4774;
+
+        private static MemoryStream data_stream = new();
+        private static readonly WaveOutEvent listening_device = new();
+        private static CancellationTokenSource cancel_token_s = new();
+        private static readonly UdpClient udp_client_listener = new(listen_port);
+        private static readonly BufferedWaveProvider buf_wave = new(new WaveFormat(44100, 16, 2));
+
+        private bool Listening
+        {
+            set
+            {
+                HearButton.IsEnabled = !value;
+                StopButton.IsEnabled = value;
+            }
+        }
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            // Decryption Setup
+            {
+                aes_engine.Key = Convert.FromBase64String(raw_key);
+                aes_engine.Mode = CipherMode.ECB;
+                aes_engine.Padding = PaddingMode.PKCS7;
+                dec_engine = aes_engine.CreateDecryptor();
+            }
+
+            HearButton.Click += HearButton_Click;
+            StopButton.Click += StopButton_Click;
+
+            listening_device.Init(buf_wave);
+        }
+
+        private void HearButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Listening = true;
+            listening_device.Play();
+            cancel_token_s = new();
+            data_stream = new();
+            Task.Run(() => ListenForAudio(cancel_token_s.Token), cancel_token_s.Token);
+        }
+
+        private void StopButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Listening = false;
+            listening_device.Stop();
+            if (!cancel_token_s?.IsCancellationRequested ?? false)
+                cancel_token_s?.Cancel();
+
+            var fileDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "NAudio");
+
+            Directory.CreateDirectory(fileDirectory);
+
+            using var writer = new WaveFileWriter(Path.Combine(fileDirectory, $"recording_{DateTime.Now:yyyyMMdd_HHmmss}.wav"), buf_wave.WaveFormat);
+            writer.Write(data_stream.ToArray(), 0, (int)data_stream.Length);
+
+            data_stream.Dispose();
+        }
+
+        private void ListenForAudio(CancellationToken cancellationToken)
+        {
+            var IP = new IPEndPoint(IPAddress.Any, listen_port);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var enc_buffer = udp_client_listener.Receive(ref IP);
+                var dec_buffer = Decrypt(enc_buffer);
+                data_stream.Write(dec_buffer, 0, dec_buffer.Length);
+                buf_wave.AddSamples(dec_buffer, 0, dec_buffer.Length);
+            }
+        }
+
+        private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            listening_device.Dispose();
+            udp_client_listener.Close();
+            udp_client_listener.Dispose();
+            if (!cancel_token_s?.IsCancellationRequested ?? false)
+                cancel_token_s?.Cancel();
+
+            aes_engine.Dispose();
+            dec_engine.Dispose();
+        }
+
+        private byte[] Decrypt(byte[] input)
+        {
+            return dec_engine.TransformFinalBlock(input, 0, input.Length);
+        }
+    }
+}
