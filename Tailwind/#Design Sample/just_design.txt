@@ -1,0 +1,55 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel= stylesheet href= "../public/style.css">
+    <title>Design Palette</title>
+</head>
+<body>
+
+    <div class="flex h-screen justify-center items-center">
+        <div class="
+            p-3
+            border-2
+            rounded-lg">
+            <p class="
+                mb-3
+                mt-2
+                ml-2
+                text-left">
+                Button Samples
+            </p>
+            <div class="flex">
+                <!-- Button 1 (Dark) -->
+                <p class="
+                    m-2
+                    px-9
+                    py-3
+                    max-w-fit
+                    shadow-xl
+                    rounded-lg
+                    text-center 
+                    bg-primary
+                    text-secondary">
+                    The
+                </p>
+
+                <!-- Button 2 (Light) -->
+                <p class="
+                    m-2
+                    px-9
+                    py-3
+                    max-w-fit
+                    shadow-md
+                    rounded-lg
+                    text-center 
+                    bg-secondary
+                    text-primary">
+                    MR
+                </p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
