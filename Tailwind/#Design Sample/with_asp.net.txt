@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<!-- Rounded Box -->
+<div class="
+    tw-p-5
+    tw-border-2
+    tw-border-primary
+    tw-rounded-lg
+    tw-max-w-max
+    ">
+    <p class="tw-mb-5">
+        ASP.NET with
+    </p>
+
+    <div class="tw-flex">
+        <!-- Tailwind CSS (Dark) -->
+        <div class="tw-flex">
+            <p class="
+                tw-bg-primary
+                tw-text-secondary
+                tw-px-5
+                tw-py-3
+                tw-rounded-lg
+                ">
+                Tailwind CSS
+            </p>
+        </div>
+
+        <!-- Bootstrap (Light) -->
+        <div class="tw-flex">
+            <p class="
+                tw-bg-secondary
+                tw-text-primary
+                tw-ml-5
+                tw-px-5
+                tw-py-3
+                tw-rounded-lg
+                ">
+                Bootstrap
+            </p>
+        </div>
+    </div>
+</div>
