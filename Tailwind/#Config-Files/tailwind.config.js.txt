@@ -1,0 +1,19 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  prefix: 'tw-',
+  content: [
+    // ASP.NET Core
+    './Pages/**/*.cshtml', './Views/**/*.cshtml'
+
+    // Ordinary
+    './src/**/*.{html,ts,js,jsx,tsx}', '*.{html,js}'
+  ],
+  theme: {
+    colors: {
+      'primary': '#3A2E39',
+      'secondary': '#F2EFEA'
+    },
+    extend: {},
+  },
+  plugins: [],
+}
