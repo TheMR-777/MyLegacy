@@ -1,0 +1,96 @@
+@{
+	Layout = null;
+	ViewData["Title"] = "Home Page";
+	var listening = ViewData["Listening"]?.ToString() == "1";
+	var audio_available = string.IsNullOrEmpty(ViewData["AudioFile"]?.ToString());
+}
+
+<head>
+	<!-- Tailwind CSS -->
+	<link rel="stylesheet" href="~/css/styles.css" />
+</head>
+
+<!-- Centered Box -->
+<div class="tw-flex tw-h-screen tw-items-center tw-justify-center">
+	
+	<!-- Rounded Box -->
+	<div class="
+		tw-rounded-lg
+		tw-border-2 
+		tw-border-primary
+		tw-py-4
+		tw-px-8
+		">
+		
+		<!-- Header -->
+		<div class="tw-flex">
+
+			<!-- Title -->
+			<div>
+                The Listener
+			</div>
+
+			<!-- Save Audio (link like button) -->
+			<div class="tw-ml-auto">
+				<a href="./SaveAudio" class="
+                    @(audio_available ? "tw-hidden" : "")
+					tw-text-primary
+					tw-font-semibold
+					tw-text-sm
+					tw-hover:tw-hidden
+					tw-underline
+					">
+					Save Audio
+				</a>
+			</div>
+		</div>
+		
+		
+		<!-- Buttons -->
+		<div class="
+			tw-flex
+			tw-flex-row
+			tw-justify-center
+			tw-mt-4
+			">
+			
+			<!-- Listen Button -->
+            <button 
+				@(listening ? "disabled" : "") 
+				id="ListenButton" onclick="location.href='./StartListening'" class=" 
+				@(listening ? @"
+					tw-bg-secondary 
+					tw-text-primary
+					": @"
+					tw-bg-primary 
+					tw-text-secondary
+					tw-shadow-lg
+					")
+					tw-rounded-md 
+					tw-py-3 
+					tw-px-7 
+				"> 
+				Start Listening 
+			</button>
+			
+			<!-- Stop Button -->
+			<button @(listening ? "" : "disabled")
+				id="StopButton" onclick="location.href='./StopListening'" class="
+                @(listening ? @"
+					tw-bg-primary 
+					tw-text-secondary
+					tw-shadow-lg
+					": @"
+					tw-bg-secondary 
+					tw-text-primary
+					")
+					tw-rounded-md
+					tw-py-3
+					tw-px-7
+					tw-ml-4
+				">
+				Stop
+			</button>
+		</div>
+	</div>
+</div>
