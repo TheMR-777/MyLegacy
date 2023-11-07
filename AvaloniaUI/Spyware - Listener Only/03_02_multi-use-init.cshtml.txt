@@ -1,0 +1,137 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using ASP.NET_Core_with_Tailwind_02.Models;
+using NAudio.Wave;
+using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Net;
+using NAudio.Lame;
+using Microsoft.AspNetCore;
+using System.Text;
+
+namespace ASP.NET_Core_with_Tailwind_02.Controllers;
+
+public class HomeController : Controller
+{
+	private const int listen_port = 4774;
+	private const string raw_key = "06+bPn7ht6TB3o92Oz/avPc5zL/KH29tBhPJNOUGZs8=";
+	private static readonly Aes aes_engine = Aes.Create();
+	private readonly ICryptoTransform dec_engine;
+	private static MemoryStream data_stream = new();
+	private static readonly WaveOutEvent listening_device = new();
+	private static readonly BufferedWaveProvider buf_wave = new(new WaveFormat(44100, 16, 2));
+	private static CancellationTokenSource cancel_token_s = new();
+	private static readonly UdpClient udp_client_listener = new(listen_port);
+
+	private static string file_name = string.Empty;
+	private static int is_listening = 0;
+	private static bool is_first = true;
+
+	public HomeController(ILogger<HomeController> logger)
+	{
+		ViewData["Listening"] = is_listening;
+		ViewData["AudioFile"] = file_name;
+
+		// Decryption Setup
+		aes_engine.Key = Convert.FromBase64String(raw_key);
+		aes_engine.Mode = CipherMode.ECB;
+		aes_engine.Padding = PaddingMode.PKCS7;
+		dec_engine = aes_engine.CreateDecryptor();
+	}
+
+	public IActionResult Index()
+	{
+		return View();
+	}
+
+	[Route("StartListening")]
+	public IActionResult StartListening()
+	{
+		ViewData["Listening"] = is_listening = 1;
+		ViewData["AudioFile"] = file_name = string.Empty;
+		if (is_first)
+		{
+			listening_device.Init(buf_wave);
+			is_first = false;
+		}
+
+		listening_device.Play();
+		cancel_token_s = new();
+		data_stream = new();
+		Task.Run(() => ListenForAudio(cancel_token_s.Token), cancel_token_s.Token);
+		return View("Index");
+	}
+
+	[Route("StopListening")]
+	public IActionResult StopListening()
+	{
+		ViewData["Listening"] = is_listening = 0;
+		ViewData["AudioFile"] = file_name = $"recording_{DateTime.Now:yyyyMMdd_HHmmss}___{Guid.NewGuid()}.mp3";
+
+		listening_device.Stop();
+		cancel_token_s.Cancel();
+
+		var file_dir = Path.Combine(Directory.GetCurrentDirectory(), "Recordings");
+		Directory.CreateDirectory(file_dir);
+		using var writer = new LameMP3FileWriter(Path.Combine(file_dir, file_name), buf_wave.WaveFormat, LAMEPreset.V9);
+		writer.Write(data_stream.ToArray(), 0, (int)data_stream.Length);
+		data_stream.Dispose();
+		return View("Index");
+	}
+
+	[Route("SaveAudio")]
+	public IActionResult SaveAudio()
+	{
+		if (string.IsNullOrEmpty(file_name))
+		{
+			return View("Index");
+		}
+
+		var file_dir = Path.Combine(Directory.GetCurrentDirectory(), "Recordings");
+		var file_path = Path.Combine(file_dir, file_name);
+
+		return File(new FileStream(file_path, FileMode.Open), "audio/mpeg", Path.GetFileName(file_path));
+	}
+
+	//private void ListenForAudio(CancellationToken cancellationToken)
+	//{
+	//    var IP = new IPEndPoint(IPAddress.Any, listen_port);
+	//    while (!cancellationToken.IsCancellationRequested)
+	//    {
+	//        var enc_buffer = udp_client_listener.Receive(ref IP);
+	//        var dec_buffer = Decrypt(enc_buffer);
+	//        data_stream.Write(dec_buffer, 0, dec_buffer.Length);
+	//        buf_wave.AddSamples(dec_buffer, 0, dec_buffer.Length);
+	//    }
+	//}
+
+	private void ListenForAudio(CancellationToken cancellationToken)
+	{
+		var IP = new IPEndPoint(IPAddress.Any, listen_port);
+		while (!cancellationToken.IsCancellationRequested)
+		{
+			var fullPacket = udp_client_listener.Receive(ref IP);
+
+			// Extract sender info
+			var idLen = BitConverter.ToInt32(fullPacket, 0);
+			var idRaw = new byte[idLen];
+			Buffer.BlockCopy(fullPacket, 4, idRaw, 0, idLen);
+			var my_ID = Encoding.UTF8.GetString(idRaw);
+
+			// At this point you have senderName which you can use to register or any other purpose
+
+			// Extract and decrypt audio data
+			var encBufferLength = fullPacket.Length - 4 - idLen;
+			var encBuffer = new byte[encBufferLength];
+			Buffer.BlockCopy(fullPacket, 4 + idLen, encBuffer, 0, encBufferLength);
+			var decBuffer = Decrypt(encBuffer);
+
+			data_stream.Write(decBuffer, 0, decBuffer.Length);
+			buf_wave.AddSamples(decBuffer, 0, decBuffer.Length);
+		}
+	}
+
+	private byte[] Decrypt(byte[] input) => dec_engine.TransformFinalBlock(input, 0, input.Length);
+}
