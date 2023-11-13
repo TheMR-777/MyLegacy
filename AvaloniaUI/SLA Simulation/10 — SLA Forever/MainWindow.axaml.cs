@@ -104,7 +104,7 @@ public partial class MainWindow : Window
 
 	private void OtherInitializations()
 	{
-		ReasonsAll.Sort((x, y) => x.Value.CompareTo(y.Value));
+		ReasonsAll.Sort((x, y) => string.Compare(x.Value, y.Value, StringComparison.OrdinalIgnoreCase));
 
 		// Timer Initialization
 		{
@@ -121,7 +121,7 @@ public partial class MainWindow : Window
 		// Pin to all Desktops
 		{
 			var handle = TryGetPlatformHandle()!;
-			UniformUtility.PinToAllDesktops(handle.Handle);
+			CrossUtility.PinToAllDesktops(handle.Handle);
 		}
 	}
 
@@ -134,7 +134,6 @@ public partial class MainWindow : Window
 		Opened += WindowOpened;
 		Closed += WindowClosed;
 		Closing += WindowClosing;
-		Deactivated += (_, __) => Activate();
 
 		// Others
 		_closeButton.Click += LoginButton_Click;
@@ -150,6 +149,12 @@ public partial class MainWindow : Window
 		_closeButton.IsEnabled = false;
 	}
 
+	private void ForceActivate(object _, object __)
+	{
+		Activate();
+		this.BringIntoView();
+	}
+
 	// Event Handlers:
 	// ---------------
 
@@ -158,7 +163,9 @@ public partial class MainWindow : Window
 		_openTime = DateTime.Now;
 		_exitTime = TimeSpan.Zero;
 		_closeButton.Content = _loginPlaceholder;
+
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
+		Deactivated += ForceActivate;
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -173,7 +180,7 @@ public partial class MainWindow : Window
 
 	private void BackgroundTimer_Tick(object _, EventArgs __)
 	{
-		if (UniformUtility.GetIdleTime() < TimeSpan.FromSeconds(_idleDuration)) return;
+		if (CrossUtility.GetIdleTime() < TimeSpan.FromSeconds(_idleDuration)) return;
 		Show();
 		this.BringIntoView();
 	}
@@ -182,12 +189,13 @@ public partial class MainWindow : Window
 	{
 		_exitTime = DateTime.Now.Subtract(_openTime);
 		_closeButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
-		_debugButton.Content = $@"Debug - {UniformUtility.GetIdleTime():hh\:mm\:ss}";
+		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
 	}
 
 	private void LoginButton_Click(object _, RoutedEventArgs __)
 	{
 		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
+		Deactivated -= ForceActivate;
 
 		// Handle _exitTime here
 
@@ -219,7 +227,7 @@ public partial class MainWindow : Window
 	}
 }
 
-public class UniformUtility
+public class CrossUtility
 {
 	public static void LogOut_theUser(object sender, RoutedEventArgs e)
 	{
@@ -238,8 +246,7 @@ public class UniformUtility
 			CreateNoWindow = true
 		};
 
-		using var process = new Process { StartInfo = startInfo };
-		process.Start();
+		Process.Start(startInfo);
 	}
 
 	public static TimeSpan GetIdleTime()
@@ -275,8 +282,10 @@ public class UniformUtility
 	public static void PinToAllDesktops(IntPtr hwnd)
 	{
 #if WIN
-		// WS_EX_TOOLWINDOW: Setting the App as ToolWindow, makes the Windows thinks of it
-		// as a Popup and thus it is not shown in the Taskbar, nor in the Alt+Tab list.
+		// WS_EX_TOOLWINDOW - 3 in 1 Solution
+		// ----------------------------------
+		// Setting the App as ToolWindow, makes the Windows thinks of it as a Popup.
+		// Thus it is not shown in the Taskbar, nor in the Alt+Tab, and Win+Tab list.
 		// As a good side-effect we also get the App to be shown on all Virtual-Desktops.
 
 		var style = LowLevel_APIs.GetWindowLongPtr(hwnd, LowLevel_APIs.GWL_EXSTYLE);
