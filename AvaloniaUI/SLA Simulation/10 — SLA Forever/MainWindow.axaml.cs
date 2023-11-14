@@ -9,12 +9,14 @@ using Avalonia;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
+using Avalonia.Media;
 
 namespace SLA_Remake;
 
 public partial class MainWindow : Window
 {
-	private const int _idleDuration = 10;
+	private readonly bool IsDesigning = Design.IsDesignMode;
+	private readonly TimeSpan _idleDuration = TimeSpan.FromSeconds(10);
 	private const string _loginPlaceholder = "Login - 00:00:00";
 
 	private readonly TextBox _reasonsDetail;
@@ -54,23 +56,23 @@ public partial class MainWindow : Window
 	public static readonly List<Key> RestrictedKeys = new()
 	{
 		// Alt, Ctrl, etc. are handled separately
-		Key.Escape,     Key.Insert,		Key.Home,		Key.End,		Key.Delete,
+		Key.Escape,     Key.Insert,     Key.Home,       Key.End,        Key.Delete,
 		Key.F1,         Key.F2,         Key.F3,         Key.F4,         Key.F5,
 		Key.F6,         Key.F7,         Key.F8,         Key.F9,         Key.F10,
 		Key.F11,        Key.F12,        Key.F13,        Key.F14,        Key.F15,
 		Key.F16,        Key.F17,        Key.F18,        Key.F19,        Key.F20,
 		Key.F21,        Key.F22,        Key.F23,        Key.F24,
 
-		Key.PageUp,		Key.PageDown,					Key.MediaNextTrack,
-		Key.KanaMode,	Key.KanjiMode,					Key.MediaPreviousTrack,
-		Key.VolumeUp,	Key.VolumeDown,					Key.VolumeMute,
-		Key.MediaStop,	Key.MediaPlayPause,				Key.SelectMedia,
-		Key.LaunchMail,	Key.LaunchApplication1,			Key.LaunchApplication2
+		Key.PageUp,     Key.PageDown,                   Key.MediaNextTrack,
+		Key.KanaMode,   Key.KanjiMode,                  Key.MediaPreviousTrack,
+		Key.VolumeUp,   Key.VolumeDown,                 Key.VolumeMute,
+		Key.MediaStop,  Key.MediaPlayPause,             Key.SelectMedia,
+		Key.LaunchMail, Key.LaunchApplication1,         Key.LaunchApplication2
 	};
 
 	public static readonly List<KeyModifiers> RestrictedModifiers = new()
 	{
-		KeyModifiers.Alt,		KeyModifiers.Control,		KeyModifiers.Meta,
+		KeyModifiers.Alt,       KeyModifiers.Control,       KeyModifiers.Meta,
 	};
 
 	public MainWindow()
@@ -111,6 +113,13 @@ public partial class MainWindow : Window
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
 			_backgroundTimer.Start();
 		}
+
+		// Setting Accent Color
+		{
+			Application.Current!.Resources["SystemAccentColor"] = Color.Parse("#FF0000");
+		}
+
+		if (IsDesigning) return;
 
 		// Restricting Keys
 		{
@@ -180,7 +189,7 @@ public partial class MainWindow : Window
 
 	private void BackgroundTimer_Tick(object _, EventArgs __)
 	{
-		if (CrossUtility.GetIdleTime() < TimeSpan.FromSeconds(_idleDuration)) return;
+		if (CrossUtility.GetIdleTime() < _idleDuration) return;
 		Show();
 		this.BringIntoView();
 	}
@@ -205,19 +214,15 @@ public partial class MainWindow : Window
 
 	private void ReasonsBox_SelectionChanged(object _, SelectionChangedEventArgs __)
 	{
-		if (_reasonsBox.SelectedItem is KeyValuePair<bool, string> kvp)
-		{
-			_reasonsDetail.IsVisible = kvp.Key;
-			_closeButton.IsEnabled = !(kvp.Key && string.IsNullOrWhiteSpace(_reasonsDetail.Text));
-		}
+		if (_reasonsBox.SelectedItem is not KeyValuePair<bool, string> kvp) return;
+		_reasonsDetail.IsVisible = kvp.Key;
+		_closeButton.IsEnabled = !(kvp.Key && string.IsNullOrWhiteSpace(_reasonsDetail.Text));
 	}
 
 	private void ReasonsDetail_TextChanged(object _, RoutedEventArgs __)
 	{
-		if (_reasonsBox.SelectedItem is KeyValuePair<bool, string>)
-		{
-			_closeButton.IsEnabled = !string.IsNullOrWhiteSpace(_reasonsDetail.Text) && _reasonsDetail.Text.Length > 4;
-		}
+		if (_reasonsBox.SelectedItem is not KeyValuePair<bool, string>) return;
+		_closeButton.IsEnabled = !string.IsNullOrWhiteSpace(_reasonsDetail.Text) && _reasonsDetail.Text.Length > 4;
 	}
 
 	private void InitializeComponent()
@@ -296,6 +301,8 @@ public class CrossUtility
 
 public partial class LowLevel_APIs
 {
+	public static readonly bool Is64Bit = IntPtr.Size == 8;
+
 #if WIN
 	// Fetching Idle Time
 	// ------------------
@@ -314,16 +321,26 @@ public partial class LowLevel_APIs
 	// -------------------
 
 	public const int GWL_EXSTYLE = -20;
-	public const int WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
 	public const int WS_EX_TOOLWINDOW = 0x00000080;
 
-	[LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrA")]
-	public static partial IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+	// Altering Window Styles
+	// ----------------------
+
+	public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
+	{
+		return Is64Bit ? GetWindowLongPtr64(hWnd, nIndex) : new IntPtr(GetWindowLongPtr32(hWnd, nIndex).ToInt32());
+	}
 
 	public static IntPtr SetWindowLongPtr(HandleRef hWnd, int nIndex, IntPtr dwNewLong)
 	{
-		return IntPtr.Size == 8 ? SetWindowLongPtr64(hWnd, nIndex, dwNewLong) : new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
+		return Is64Bit ? SetWindowLongPtr64(hWnd, nIndex, dwNewLong) : new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
 	}
+
+	[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+	private static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
+
+	[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+	private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
 	[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
 	private static extern int SetWindowLong32(HandleRef hWnd, int nIndex, int dwNewLong);
