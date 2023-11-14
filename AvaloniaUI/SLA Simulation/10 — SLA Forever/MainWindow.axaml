@@ -1,10 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
-        x:Class="SLA_Remake.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
+		x:Class="SLA_Remake.MainWindow"
+		Icon="/Assets/avalonia-logo.ico"
 		
 		Width="10000"
 		Height="10000"
@@ -26,7 +26,7 @@
 		Background="#202020"
 		ExtendClientAreaChromeHints="NoChrome"
 		ExtendClientAreaToDecorationsHint="True"
-        Title="SLA Remastered">
+		Title="SLA Remastered">
 	
 	<!-- Real Work -->
 	<StackPanel 
@@ -38,13 +38,8 @@
 			BorderBrush="#2a2a2a"
 			CornerRadius="5">
 			
-			<Grid>
-				<Grid.RowDefinitions>
-					<RowDefinition/>
-					<RowDefinition/>
-					<RowDefinition/>
-				</Grid.RowDefinitions>
-				
+			<Grid RowDefinitions="*,*,*">
+
 				<!-- Banner -->
 				<TextBlock
 					Grid.Row="0"
