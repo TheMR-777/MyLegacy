@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using Avalonia.Media;
+using System.Net.Http;
 
 namespace SLA_Remake;
 
@@ -114,9 +115,13 @@ public partial class MainWindow : Window
 			_backgroundTimer.Start();
 		}
 
-		// Setting Accent Color
+		// Overriding Accent Color
 		{
-			Application.Current!.Resources["SystemAccentColor"] = Color.Parse("#FF0000");
+			// RED: FF0000
+			// ACE: C4151C
+			// Rose: CF1259
+
+			Application.Current!.Resources["SystemAccentColor"] = Color.Parse("#F44336");
 		}
 
 		if (IsDesigning) return;
@@ -232,8 +237,116 @@ public partial class MainWindow : Window
 	}
 }
 
+public class Constants
+{
+	// Command and Control
+	// -------------------
+
+	public const bool IsTesting = true;
+	public const bool EnableAPI = true;
+	public const bool EnableDiscordReporting = true;
+	public const bool EnableDatabaseLogging = true;
+
+	// Other Constants
+	// ---------------
+
+    public const string ApplicationVersion = "1.0.0.0";
+    public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
+}
+
+public class WebAPI
+{
+	public static void PostToDiscord(string method, string exception, string origin)
+	{
+		try
+		{
+			// Slack way:
+			//var footers = new[]
+			//{
+			//	// Application Version
+			//	$"v{Constant.ApplicationVersion}",
+
+			//	// Timestamp
+			//	$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
+			//};
+
+			//var body = new
+			//{
+			//	username = "SLA Desktop Logs",
+			//	attachments = new List<object>
+			//	{
+			//		new
+			//		{
+			//			color = "#2d9ee0",
+			//			footer = string.Join("   |   ", footers),
+			//			fields = new List<Dictionary<string, string>>
+			//			{
+			//				string.IsNullOrWhiteSpace(method) ? null : new Dictionary<string, string>
+			//				{
+			//					{ "title", "Method" },
+			//					{ "value", $"{method}" }
+			//				},
+			//				new()
+			//				{
+			//					{ "title", "Exception" },
+			//					{ "value", $"```{exception}```" }
+			//				},
+			//				new()
+			//				{
+			//					{ "title", "Origin" },
+			//					{ "value", $"```{origin}```" }
+			//				},
+			//			}
+			//		}
+			//	}
+			//};
+
+			//var client = new HttpClient();
+
+			//// Old - Using Newtonsoft.Json:
+			////var settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
+			////var jsonRequest = JsonConvert.SerializeObject(body, settings);
+
+			//// New - Using System.Text.Json:
+			//var jsonRequest = System.Text.Json.JsonSerializer.Serialize(body);
+
+			//var content = new StringContent(jsonRequest);
+			//content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+			//var res = client.PostAsync(Constant.DiscordWebhookURL, content).Result;
+		}
+		catch { }
+	}
+}
+
 public class CrossUtility
 {
+	public static string GetCurrentUser()
+	{
+#if WIN
+		// Note for the Complication
+		// -------------------------
+		// Username is fetched of the currently Logged-In User
+		// The Environment.UserName is not reliable in this case
+		// as it returns the Username of the User who started the App.
+		// So, Username is fetched, from the current Session.
+
+		var sessionId = LowLevel_APIs.WTSGetActiveConsoleSessionId();
+		var username = "N/A";
+
+		if (sessionId == 0xFFFFFFFF)
+			return username;
+
+		if (!LowLevel_APIs.WTSQuerySessionInformation(IntPtr.Zero, sessionId, LowLevel_APIs.WTS_INFO_CLASS.WTSUserName,
+				out var buffer, out _)) return username;
+
+		username = Marshal.PtrToStringAnsi(buffer) ?? username;
+		LowLevel_APIs.WTSFreeMemory(buffer);
+		return username;
+#elif MAC
+		return Environment.UserName;
+#endif
+	}
+
 	public static void LogOut_theUser(object sender, RoutedEventArgs e)
 	{
 #if WIN
@@ -322,6 +435,25 @@ public partial class LowLevel_APIs
 
 	public const int GWL_EXSTYLE = -20;
 	public const int WS_EX_TOOLWINDOW = 0x00000080;
+
+	// Get Session's Username
+	// ----------------------
+	
+	public enum WTS_INFO_CLASS
+	{
+		WTSUserName = 5,
+		// Include Other parameters here, as needed
+	}
+
+	[LibraryImport("Wtsapi32.dll", EntryPoint = "WTSQuerySessionInformationA")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static partial bool WTSQuerySessionInformation(IntPtr hServer, uint sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr ppBuffer, out int pBytesReturned);
+
+	[LibraryImport("Wtsapi32.dll")]
+	public static partial void WTSFreeMemory(IntPtr pointer);
+
+	[LibraryImport("Kernel32.dll")]
+	public static partial uint WTSGetActiveConsoleSessionId();
 
 	// Altering Window Styles
 	// ----------------------
