@@ -4,7 +4,7 @@
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
 		x:Class="SLA_Remake.MainWindow"
-		Icon="/Assets/avalonia-logo.ico"
+		Icon="/Assets/sla-logo.ico"
 		
 		Width="10000"
 		Height="10000"
@@ -43,7 +43,7 @@
 				<!-- Banner -->
 				<TextBlock
 					Grid.Row="0"
-					Text="Recording Break"
+					Text="Staff Logoff Activity"
 					Margin="0,30,0,0"
 					HorizontalAlignment="Center"
 					FontFamily="{StaticResource My-SegoeUI}"
@@ -59,7 +59,6 @@
 					VerticalAlignment="Center"
 					HorizontalAlignment="Center"/>
 
-
 				<!-- Guide Hint -->
 				<Border
 					Grid.Row="2"
@@ -73,7 +72,8 @@
 						HorizontalAlignment="Center"
 						FontSize="14"
 						Foreground="#FFFFFFFF"
-						Text="Please select your break type, and Login"/>
+                        Opacity="0.7"
+						Text="Your break is being Recorded. Please select your break type, and Login"/>
 
 				</Border>
 			</Grid>
