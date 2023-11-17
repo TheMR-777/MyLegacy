@@ -9,10 +9,27 @@ using Avalonia;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
+using System.Linq;
 using Avalonia.Media;
 using System.Net.Http;
 
 namespace SLA_Remake;
+
+public class Constants
+{
+	// Command and Control
+	// -------------------
+
+	public const bool EnableAPI = true;
+	public const bool EnableDiscordReporting = true;
+	public const bool EnableDatabaseLogging = true;
+
+	// Other Constants
+	// ---------------
+
+	public const string ApplicationVersion = "1.0.0.0";
+	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
+}
 
 public partial class MainWindow : Window
 {
@@ -108,7 +125,7 @@ public partial class MainWindow : Window
 	private void OtherInitializations()
 	{
 		ReasonsAll.Sort((x, y) => string.Compare(x.Value, y.Value, StringComparison.OrdinalIgnoreCase));
-
+		
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
@@ -117,10 +134,6 @@ public partial class MainWindow : Window
 
 		// Overriding Accent Color
 		{
-			// RED: FF0000
-			// ACE: C4151C
-			// Rose: CF1259
-
 			Application.Current!.Resources["SystemAccentColor"] = Color.Parse("#F44336");
 		}
 
@@ -237,84 +250,103 @@ public partial class MainWindow : Window
 	}
 }
 
-public class Constants
-{
-	// Command and Control
-	// -------------------
-
-	public const bool IsTesting = true;
-	public const bool EnableAPI = true;
-	public const bool EnableDiscordReporting = true;
-	public const bool EnableDatabaseLogging = true;
-
-	// Other Constants
-	// ---------------
-
-    public const string ApplicationVersion = "1.0.0.0";
-    public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
-}
-
 public class WebAPI
 {
-	public static void PostToDiscord(string method, string exception, string origin)
+	public static void L1_RegisterException(Exception x)
 	{
-		try
+		// Fetching Footprints
+		// -------------------
+
+		var footprints = new System.Text.StringBuilder();
+		foreach (var frame in new StackTrace().GetFrames()!)
 		{
-			// Slack way:
-			//var footers = new[]
-			//{
-			//	// Application Version
-			//	$"v{Constant.ApplicationVersion}",
+			var method = frame.GetMethod()!;
+			var type = method.DeclaringType!;
+			var name = method.Name;
+			var parameters = method.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray();
 
-			//	// Timestamp
-			//	$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
-			//};
-
-			//var body = new
-			//{
-			//	username = "SLA Desktop Logs",
-			//	attachments = new List<object>
-			//	{
-			//		new
-			//		{
-			//			color = "#2d9ee0",
-			//			footer = string.Join("   |   ", footers),
-			//			fields = new List<Dictionary<string, string>>
-			//			{
-			//				string.IsNullOrWhiteSpace(method) ? null : new Dictionary<string, string>
-			//				{
-			//					{ "title", "Method" },
-			//					{ "value", $"{method}" }
-			//				},
-			//				new()
-			//				{
-			//					{ "title", "Exception" },
-			//					{ "value", $"```{exception}```" }
-			//				},
-			//				new()
-			//				{
-			//					{ "title", "Origin" },
-			//					{ "value", $"```{origin}```" }
-			//				},
-			//			}
-			//		}
-			//	}
-			//};
-
-			//var client = new HttpClient();
-
-			//// Old - Using Newtonsoft.Json:
-			////var settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
-			////var jsonRequest = JsonConvert.SerializeObject(body, settings);
-
-			//// New - Using System.Text.Json:
-			//var jsonRequest = System.Text.Json.JsonSerializer.Serialize(body);
-
-			//var content = new StringContent(jsonRequest);
-			//content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-			//var res = client.PostAsync(Constant.DiscordWebhookURL, content).Result;
+			footprints.Append($"{type}.{name}({string.Join(", ", parameters)}) < ");
 		}
-		catch { }
+
+		// Fetching User Information
+		// -------------------------
+
+		var userInf = new[]
+		{
+			CrossUtility.GetCurrentUser(),
+			Environment.MachineName,
+		};
+
+		var footers = new[]
+		{
+			// Application Version
+			$"v{Constants.ApplicationVersion}",
+
+			// Timestamp
+			$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
+		};
+
+		// Creating the Body
+		// -----------------
+
+		var body = new
+		{
+			username = "SLA Remake - Logger",
+			avatar_url = "https://i.imgur.com/IvgCM1R.png",
+			content = "",
+			embeds = new List<object>
+			{
+				new
+				{
+					author = new
+					{
+						name = string.Join("  |  ", userInf),
+						url = "https://www.google.com",
+						icon_url = "https://i.imgur.com/xCvzudW.png"
+					},
+					color = 16007990,
+					thumbnail = new
+					{
+						url = "https://i.imgur.com/IvgCM1R.jpg"
+					},
+					fields = new List<Dictionary<string, string>>
+					{
+						new()
+						{
+							{ "name", "Method Trail" },
+							{ "value", $"{footprints}" },
+							{ "inline", "true" }
+						},
+						new()
+						{
+							{ "name", "Exception/Message" },
+							{ "value", $"```{x.Message}```" },
+						},
+						new()
+						{
+							{ "name", "Stack-Trace" },
+							{ "value", $"```{x.StackTrace}```" },
+						}
+					},
+					footer = new
+					{
+						text = string.Join("   |   ", footers),
+						icon_url = "https://i.imgur.com/0jqoy6w.jpg"
+					}
+				}
+			}
+		};
+
+		// Sending the Request
+		// -------------------
+
+		var client = new HttpClient();
+		var request = new HttpRequestMessage(HttpMethod.Post, Constants.DiscordWebhookURL)
+		{
+			Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(body))
+		};
+		request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+		_ = client.SendAsync(request).Result;
 	}
 }
 
@@ -323,12 +355,12 @@ public class CrossUtility
 	public static string GetCurrentUser()
 	{
 #if WIN
-		// Note for the Complication
-		// -------------------------
-		// Username is fetched of the currently Logged-In User
+		// Note for the Complication in-case on Windows
+		// --------------------------------------------
+		// Here, Username is fetched of the currently Logged-In User
 		// The Environment.UserName is not reliable in this case
 		// as it returns the Username of the User who started the App.
-		// So, Username is fetched, from the current Session.
+		// So, Username is fetched, from the currently active Session.
 
 		var sessionId = LowLevel_APIs.WTSGetActiveConsoleSessionId();
 		var username = "N/A";
