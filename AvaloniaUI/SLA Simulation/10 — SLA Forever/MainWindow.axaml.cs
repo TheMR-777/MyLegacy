@@ -193,6 +193,7 @@ public partial class MainWindow : Window
 
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
 		Deactivated += ForceActivate;
+		CrossUtility.DisableOSUtility();
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -223,6 +224,7 @@ public partial class MainWindow : Window
 	{
 		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
 		Deactivated -= ForceActivate;
+		CrossUtility.EnableOSUtility();
 
 		// Handle _exitTime here
 
@@ -257,16 +259,9 @@ public class WebAPI
 		// Fetching Footprints
 		// -------------------
 
-		var footprints = new System.Text.StringBuilder();
-		foreach (var frame in new StackTrace().GetFrames()!)
-		{
-			var method = frame.GetMethod()!;
-			var type = method.DeclaringType!;
-			var name = method.Name;
-			var parameters = method.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray();
-
-			footprints.Append($"{type}.{name}({string.Join(", ", parameters)}) < ");
-		}
+		var footprints = new StackTrace().GetFrames()!
+			.Select(frame => frame.GetMethod()!)
+			.Select(methodReference => $"{methodReference.DeclaringType!}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})").ToList();
 
 		// Fetching User Information
 		// -------------------------
@@ -314,7 +309,7 @@ public class WebAPI
 						new()
 						{
 							{ "name", "Method Trail" },
-							{ "value", $"{footprints}" },
+							{ "value", string.Join(" < ", footprints)},
 							{ "inline", "true" }
 						},
 						new()
@@ -368,8 +363,8 @@ public class CrossUtility
 		if (sessionId == 0xFFFFFFFF)
 			return username;
 
-		if (!LowLevel_APIs.WTSQuerySessionInformation(IntPtr.Zero, sessionId, LowLevel_APIs.WTS_INFO_CLASS.WTSUserName,
-				out var buffer, out _)) return username;
+		if (!LowLevel_APIs.WTSQuerySessionInformation(IntPtr.Zero, sessionId, LowLevel_APIs.WTS_INFO_CLASS.WTSUserName,	out var buffer, out _)) 
+			return username;
 
 		username = Marshal.PtrToStringAnsi(buffer) ?? username;
 		LowLevel_APIs.WTSFreeMemory(buffer);
@@ -442,6 +437,22 @@ public class CrossUtility
 		LowLevel_APIs.SetWindowLongPtr(new HandleRef(null, hwnd), LowLevel_APIs.GWL_EXSTYLE, style.ToInt32() | LowLevel_APIs.WS_EX_TOOLWINDOW);
 #endif
 	}
+
+	public static void DisableOSUtility()
+	{
+#if WIN
+#elif MAC
+		LowLevel_APIs.HideMenuBar();
+#endif
+	}
+
+	public static void EnableOSUtility()
+	{
+#if WIN
+#elif MAC
+		LowLevel_APIs.ShowMenuBar();
+#endif
+	}
 }
 
 public partial class LowLevel_APIs
@@ -511,5 +522,38 @@ public partial class LowLevel_APIs
 
 	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
 	private static extern IntPtr SetWindowLongPtr64(HandleRef hWnd, int nIndex, IntPtr dwNewLong);
+#elif MAC
+	private const string ObjectiveCLibrary = "/usr/lib/libobjc.dylib";
+	private const string AppKitLibrary = "/System/Library/Frameworks/AppKit.framework/AppKit";
+
+	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_getClass")]
+	public extern static IntPtr GetClass(string className);
+
+	[DllImport(ObjectiveCLibrary, EntryPoint = "sel_registerName")]
+	public extern static IntPtr RegisterName(string selectorName);
+
+	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	public static extern IntPtr SendMessage(IntPtr receiver, IntPtr selector);
+
+	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	public static extern void SendMessage(IntPtr receiver, IntPtr selector, IntPtr arg1);
+
+	public static void HideMenuBar()
+	{
+		var NSAppClass = GetClass("NSApplication");
+		var sharedApplicationSelector = RegisterName("sharedApplication");
+		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
+		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
+		SendMessage(sharedApplication, setPresentationOptionsSelector, (IntPtr)2); // NSApplicationPresentationHideMenuBar
+	}
+
+	public static void ShowMenuBar()
+	{
+		var NSAppClass = GetClass("NSApplication");
+		var sharedApplicationSelector = RegisterName("sharedApplication");
+		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
+		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
+		SendMessage(sharedApplication, setPresentationOptionsSelector, (IntPtr)0); // NSApplicationPresentationDefault
+	}
 #endif
 }

@@ -4,8 +4,10 @@ using System.Reflection;
 
 namespace SLA_Remake;
 
-class Program
+internal class Program
 {
+	private static readonly System.Threading.Mutex mutex = new(true, Assembly.GetExecutingAssembly().FullName);
+
 	// Initialization code. Don't use any Avalonia, third-party APIs or any
 	// SynchronizationContext-reliant code before AppMain is called: things aren't initialized
 	// yet and stuff might break.
@@ -14,6 +16,9 @@ class Program
 	{
 		try
 		{
+			if (!mutex.WaitOne(TimeSpan.Zero, true))
+				return;
+
 			BuildAvaloniaApp()
 				.StartWithClassicDesktopLifetime(args);
 		}
