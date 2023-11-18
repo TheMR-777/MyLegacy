@@ -34,7 +34,7 @@ public class Constants
 public partial class MainWindow : Window
 {
 	private readonly bool IsDesigning = Design.IsDesignMode;
-	private readonly TimeSpan _idleDuration = TimeSpan.FromSeconds(10);
+	private readonly TimeSpan _idleAllowed = TimeSpan.FromSeconds(10);
 	private const string _loginPlaceholder = "Login - 00:00:00";
 
 	private readonly TextBox _reasonsDetail;
@@ -125,7 +125,7 @@ public partial class MainWindow : Window
 	private void OtherInitializations()
 	{
 		ReasonsAll.Sort((x, y) => string.Compare(x.Value, y.Value, StringComparison.OrdinalIgnoreCase));
-		
+
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
@@ -193,7 +193,7 @@ public partial class MainWindow : Window
 
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
 		Deactivated += ForceActivate;
-		CrossUtility.DisableOSUtility();
+		CrossUtility.ConstrainCursor();
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -208,7 +208,7 @@ public partial class MainWindow : Window
 
 	private void BackgroundTimer_Tick(object _, EventArgs __)
 	{
-		if (CrossUtility.GetIdleTime() < _idleDuration) return;
+		if (CrossUtility.GetIdleTime() < _idleAllowed) return;
 		Show();
 		this.BringIntoView();
 	}
@@ -225,10 +225,10 @@ public partial class MainWindow : Window
 	{
 		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
 		Deactivated -= ForceActivate;
-		CrossUtility.EnableOSUtility();
 
 		// Handle _exitTime here
 
+		CrossUtility.ConstrainCursor(false);
 		ResetFields();
 		Hide();
 	}
@@ -439,19 +439,28 @@ public class CrossUtility
 #endif
 	}
 
-	public static void DisableOSUtility()
+	public static void ConstrainCursor(bool toOrNotTo = true)
 	{
 #if WIN
-#elif MAC
-		LowLevel_APIs.HideMenuBar();
-#endif
-	}
+		var x = LowLevel_APIs.Screen.Width;
+		var y = LowLevel_APIs.Screen.Height;
 
-	public static void EnableOSUtility()
-	{
-#if WIN
+		var x_factor = 4;
+		var y_factor = 15;
+
+		var dimensions = new LowLevel_APIs.RECT
+		{
+			Left = x / x_factor,
+			Top = y / y_factor,
+			Right = x - (x / x_factor),
+			Bottom = y - (y / y_factor)
+		};
+
+		if (toOrNotTo)
+			LowLevel_APIs.ClipCursor(ref dimensions);
+		else
+			LowLevel_APIs.ClipCursor(IntPtr.Zero);
 #elif MAC
-		LowLevel_APIs.ShowMenuBar();
 #endif
 	}
 }
@@ -523,6 +532,35 @@ public partial class LowLevel_APIs
 
 	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
 	private static extern IntPtr SetWindowLongPtr64(HandleRef hWnd, int nIndex, IntPtr dwNewLong);
+
+	// Cursor Clipping
+	// ---------------
+
+	public static class Screen
+	{
+		[DllImport("user32.dll")]
+		private static extern int GetSystemMetrics(int nIndex);
+
+		public static int Width => GetSystemMetrics(0);
+		public static int Height => GetSystemMetrics(1);
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	public struct RECT
+	{
+		public int Left;
+		public int Top;
+		public int Right;
+		public int Bottom;
+	}
+
+	[LibraryImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static partial bool ClipCursor(ref RECT rect);
+
+	[LibraryImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static partial bool ClipCursor(IntPtr rect);
 #elif MAC
 	private const string ObjectiveCLibrary = "/usr/lib/libobjc.dylib";
 	private const string AppKitLibrary = "/System/Library/Frameworks/AppKit.framework/AppKit";
