@@ -176,7 +176,7 @@ public partial class MainWindow : Window
 		_closeButton.IsEnabled = false;
 	}
 
-	private void ForceActivate(object _, object __)
+	private void ForceActivate(object _ = null, object __ = null)
 	{
 		Activate();
 		this.BringIntoView();
@@ -215,6 +215,7 @@ public partial class MainWindow : Window
 
 	private void ForegroundTimer_TickTask(object _, EventArgs __)
 	{
+		ForceActivate();
 		_exitTime = DateTime.Now.Subtract(_openTime);
 		_closeButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
@@ -532,11 +533,17 @@ public partial class LowLevel_APIs
 	[DllImport(ObjectiveCLibrary, EntryPoint = "sel_registerName")]
 	public extern static IntPtr RegisterName(string selectorName);
 
+	// Note for the Complication of 'objc_msgSend'
+	// -------------------------------------------
+	// 1stly, the Return Type is dependant on the Method Signature.
+	// 2ndly, this methos has variadic arguments, of variadic types.
+	// Thus, we need to create multiple overloads of this method.
+
 	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
 	public static extern IntPtr SendMessage(IntPtr receiver, IntPtr selector);
 
 	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
-	public static extern void SendMessage(IntPtr receiver, IntPtr selector, IntPtr arg1);
+	public static extern void SendMessage(IntPtr receiver, IntPtr selector, int arg1);
 
 	public static void HideMenuBar()
 	{
@@ -544,7 +551,7 @@ public partial class LowLevel_APIs
 		var sharedApplicationSelector = RegisterName("sharedApplication");
 		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
 		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
-		SendMessage(sharedApplication, setPresentationOptionsSelector, (IntPtr)2); // NSApplicationPresentationHideMenuBar
+		SendMessage(sharedApplication, setPresentationOptionsSelector, 2); // NSApplicationPresentationHideMenuBar
 	}
 
 	public static void ShowMenuBar()
@@ -553,7 +560,7 @@ public partial class LowLevel_APIs
 		var sharedApplicationSelector = RegisterName("sharedApplication");
 		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
 		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
-		SendMessage(sharedApplication, setPresentationOptionsSelector, (IntPtr)0); // NSApplicationPresentationDefault
+		SendMessage(sharedApplication, setPresentationOptionsSelector, 0); // NSApplicationPresentationDefault
 	}
 #endif
 }
