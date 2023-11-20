@@ -193,7 +193,6 @@ public partial class MainWindow : Window
 
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
 		Deactivated += ForceActivate;
-		CrossUtility.ConstrainCursor();
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -216,6 +215,7 @@ public partial class MainWindow : Window
 	private void ForegroundTimer_TickTask(object _, EventArgs __)
 	{
 		ForceActivate();
+		CrossUtility.ConstrainCursor();
 		_exitTime = DateTime.Now.Subtract(_openTime);
 		_closeButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
@@ -445,15 +445,15 @@ public class CrossUtility
 		var x = LowLevel_APIs.Screen.Width;
 		var y = LowLevel_APIs.Screen.Height;
 
-		var x_factor = 4;
-		var y_factor = 15;
+		const int x_factor = 4;
+		const int y_factor = 15;
 
 		var dimensions = new LowLevel_APIs.RECT
 		{
 			Left = x / x_factor,
 			Top = y / y_factor,
-			Right = x - (x / x_factor),
-			Bottom = y - (y / y_factor)
+			Right = x - x / x_factor,
+			Bottom = y - y / y_factor
 		};
 
 		if (toOrNotTo)
@@ -461,6 +461,51 @@ public class CrossUtility
 		else
 			LowLevel_APIs.ClipCursor(IntPtr.Zero);
 #elif MAC
+		var screenR = LowLevel_APIs.Screen.Width;
+		var screenL = 0;
+		var screenT = 0;
+		var screenB = LowLevel_APIs.Screen.Height;
+		var screenX = LowLevel_APIs.Screen.Width;
+		var screenY = LowLevel_APIs.Screen.Height;
+
+		// Calculating 25% of screen width
+		var offsetX = (int)(screenX * 0.25f);
+
+		// Calculating 10% of screen height
+		var offsetY = (int)(screenY * 0.10f);
+
+		// Updating right and left boundaries
+		screenR -= offsetX;
+		screenL += offsetX;
+
+		// Updating top and bottom boundaries
+		screenT += offsetY;
+		screenB -= offsetY;
+
+		// Fetching current mouse location
+		var nsPoint = LowLevel_APIs.GetClass("NSEvent");
+		var selectR = LowLevel_APIs.RegisterName("mouseLocation");
+		var cursPos = LowLevel_APIs.SendMessage_CGPoint(nsPoint, selectR);
+
+		// If the cursor is within the allowed area, just return.
+		if (!(cursPos.x < screenL || cursPos.x > screenR))
+			return;
+
+		// If cursor is in restricted area, move it to the nearest allowed area.
+		var allowedPosition = cursPos.x < screenL ? screenL : screenR;
+
+		// Flip Y coordinate when creating fake mouse event in the desired position.
+		var newLocation = new LowLevel_APIs.CoreGraphics.CGPoint(allowedPosition, screenY - cursPos.y);
+		var cursorEvent = LowLevel_APIs.CoreGraphics.CGEventCreateMouseEvent(IntPtr.Zero, LowLevel_APIs.CoreGraphics.kCGEventMouseMoved, newLocation, 0);
+
+		// Disassociate mouse cursor from real events.
+		LowLevel_APIs.CoreGraphics.CGAssociateMouseAndMouseCursorPosition(false);
+
+		// Post our fake event which moves the cursor
+		LowLevel_APIs.CoreGraphics.CGEventPost(LowLevel_APIs.CoreGraphics.kCGHIDEventTap, cursorEvent);
+
+		// Reassociate mouse cursor and real events.
+		LowLevel_APIs.CoreGraphics.CGAssociateMouseAndMouseCursorPosition(true);
 #endif
 	}
 }
@@ -562,6 +607,10 @@ public partial class LowLevel_APIs
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool ClipCursor(IntPtr rect);
 #elif MAC
+
+	// General APIs
+	// ------------
+
 	private const string ObjectiveCLibrary = "/usr/lib/libobjc.dylib";
 	private const string AppKitLibrary = "/System/Library/Frameworks/AppKit.framework/AppKit";
 
@@ -571,8 +620,11 @@ public partial class LowLevel_APIs
 	[DllImport(ObjectiveCLibrary, EntryPoint = "sel_registerName")]
 	public extern static IntPtr RegisterName(string selectorName);
 
+	[DllImport(ObjectiveCLibrary, EntryPoint = "object_getIvar")]
+	public static extern IntPtr GetInstanceVariable(IntPtr handle, IntPtr ivar);
+
 	// Note for the Complication of 'objc_msgSend'
-	// -------------------------------------------
+	// -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
 	// 1stly, the Return Type is dependant on the Method Signature.
 	// 2ndly, this methos has variadic arguments, of variadic types.
 	// Thus, we need to create multiple overloads of this method.
@@ -580,8 +632,17 @@ public partial class LowLevel_APIs
 	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
 	public static extern IntPtr SendMessage(IntPtr receiver, IntPtr selector);
 
+	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend", CharSet = CharSet.Auto)]
+	public static extern LowLevel_APIs.CoreGraphics.CGPoint SendMessage_CGPoint(IntPtr receiver, IntPtr selector);
+
 	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
 	public static extern void SendMessage(IntPtr receiver, IntPtr selector, int arg1);
+
+	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend_stret", CharSet = CharSet.Auto)]
+	public static extern void SendMessage_stret_CGPoint(out LowLevel_APIs.CoreGraphics.CGPoint result, IntPtr receiver, IntPtr selector);
+
+	// Menubar Management
+	// ------------------
 
 	public static void HideMenuBar()
 	{
@@ -599,6 +660,55 @@ public partial class LowLevel_APIs
 		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
 		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
 		SendMessage(sharedApplication, setPresentationOptionsSelector, 0); // NSApplicationPresentationDefault
+	}
+
+	// Cursor Restriction
+	// ------------------
+
+	public static class CoreGraphics
+	{
+		public const int kCGEventMouseMoved = 5;
+		public const int kCGHIDEventTap = 0;
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct CGPoint
+		{
+			public double x;
+			public double y;
+
+			public CGPoint(double x, double y)
+			{
+				this.x = x;
+				this.y = y;
+			}
+		}
+
+		[DllImport("ApplicationServices.framework/ApplicationServices")]
+		public static extern int CGAssociateMouseAndMouseCursorPosition(bool connected);
+
+		[DllImport("ApplicationServices.framework/ApplicationServices")]
+		public static extern IntPtr CGEventCreateMouseEvent(IntPtr source, int mouseType, CGPoint mouseCursorPosition, int mouseButton);
+
+		[DllImport("ApplicationServices.framework/ApplicationServices")]
+		public static extern void CGEventPost(int tapLocation, IntPtr eventRef);
+
+		[DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		public static extern int CGWarpMouseCursorPosition(CGPoint newCursorPosition);
+
+		[DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		public static extern int CGDisplayPixelsWide(int displayId);
+
+		[DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		public static extern int CGDisplayPixelsHigh(int displayId);
+
+		[DllImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
+		public static extern int CGMainDisplayID();
+	}
+
+	public static class Screen
+	{
+		public static readonly int Width = CoreGraphics.CGDisplayPixelsWide(CoreGraphics.CGMainDisplayID());
+		public static readonly int Height = CoreGraphics.CGDisplayPixelsHigh(CoreGraphics.CGMainDisplayID());
 	}
 #endif
 }
