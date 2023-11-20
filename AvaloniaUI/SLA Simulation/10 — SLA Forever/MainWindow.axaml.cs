@@ -214,11 +214,13 @@ public partial class MainWindow : Window
 
 	private void ForegroundTimer_TickTask(object _, EventArgs __)
 	{
-		ForceActivate();
-		CrossUtility.ConstrainCursor();
 		_exitTime = DateTime.Now.Subtract(_openTime);
 		_closeButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
+
+		if (IsDesigning) return;
+		ForceActivate();
+		CrossUtility.ConstrainCursor();
 	}
 
 	private void LoginButton_Click(object _, RoutedEventArgs __)
@@ -346,9 +348,23 @@ public class WebAPI
 	}
 }
 
-public class CrossUtility
+public partial class CrossUtility
 {
-	public static string GetCurrentUser()
+	public static partial class Screen
+	{
+#if WIN
+		[LibraryImport("user32.dll")]
+		private static partial int GetSystemMetrics(int nIndex);
+
+		public static int Width => GetSystemMetrics(0);
+		public static int Height => GetSystemMetrics(1);
+#elif MAC
+		public static readonly int Width = LowLevel_APIs.CoreGraphics.CGDisplayPixelsWide(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
+		public static readonly int Height = LowLevel_APIs.CoreGraphics.CGDisplayPixelsHigh(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
+#endif
+    }
+
+    public static string GetCurrentUser()
 	{
 #if WIN
 		// Note for the Complication in-case on Windows
@@ -442,8 +458,8 @@ public class CrossUtility
 	public static void ConstrainCursor(bool toOrNotTo = true)
 	{
 #if WIN
-		var x = LowLevel_APIs.Screen.Width;
-		var y = LowLevel_APIs.Screen.Height;
+		var x = Screen.Width;
+		var y = Screen.Height;
 
 		const int x_factor = 4;
 		const int y_factor = 15;
@@ -461,12 +477,12 @@ public class CrossUtility
 		else
 			LowLevel_APIs.ClipCursor(IntPtr.Zero);
 #elif MAC
-		var screenR = LowLevel_APIs.Screen.Width;
+		var screenR = Screen.Width;
 		var screenL = 0;
 		var screenT = 0;
-		var screenB = LowLevel_APIs.Screen.Height;
-		var screenX = LowLevel_APIs.Screen.Width;
-		var screenY = LowLevel_APIs.Screen.Height;
+		var screenB = Screen.Height;
+		var screenX = Screen.Width;
+		var screenY = Screen.Height;
 
 		// Calculating 25% of screen width
 		var offsetX = (int)(screenX * 0.25f);
@@ -581,15 +597,6 @@ public partial class LowLevel_APIs
 	// Cursor Clipping
 	// ---------------
 
-	public static class Screen
-	{
-		[DllImport("user32.dll")]
-		private static extern int GetSystemMetrics(int nIndex);
-
-		public static int Width => GetSystemMetrics(0);
-		public static int Height => GetSystemMetrics(1);
-	}
-
 	[StructLayout(LayoutKind.Sequential)]
 	public struct RECT
 	{
@@ -703,12 +710,6 @@ public partial class LowLevel_APIs
 
 		[DllImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
 		public static extern int CGMainDisplayID();
-	}
-
-	public static class Screen
-	{
-		public static readonly int Width = CoreGraphics.CGDisplayPixelsWide(CoreGraphics.CGMainDisplayID());
-		public static readonly int Height = CoreGraphics.CGDisplayPixelsHigh(CoreGraphics.CGMainDisplayID());
 	}
 #endif
 }
