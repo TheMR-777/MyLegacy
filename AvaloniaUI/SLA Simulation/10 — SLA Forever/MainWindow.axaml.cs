@@ -190,7 +190,7 @@ public partial class MainWindow : Window
 	private void Runner(object _ = null, object __ = null)
 	{
 		ForceActivate();
-		CrossUtility.ConstrainCursor();
+		CrossUtility.RestrictOSFeatures();
 	}
 
 	// Event Handlers:
@@ -239,7 +239,7 @@ public partial class MainWindow : Window
 
 		// Handle _exitTime here
 
-		CrossUtility.ConstrainCursor(false);
+		CrossUtility.AllowOSFeatures();
 		ResetFields();
 		Hide();
 	}
@@ -461,6 +461,26 @@ public partial class CrossUtility
 
 		var style = LowLevel_APIs.GetWindowLongPtr(hwnd, LowLevel_APIs.GWL_EXSTYLE);
 		LowLevel_APIs.SetWindowLongPtr(new HandleRef(null, hwnd), LowLevel_APIs.GWL_EXSTYLE, style.ToInt32() | LowLevel_APIs.WS_EX_TOOLWINDOW);
+#endif
+	}
+
+	public static void RestrictOSFeatures()
+	{
+		ConstrainCursor();
+
+#if WIN
+#elif MAC
+		LowLevel_APIs.HideMenuBar();
+#endif
+	}
+
+	public static void AllowOSFeatures()
+	{
+		ConstrainCursor(false);
+
+#if WIN
+#elif MAC
+		LowLevel_APIs.ShowMenuBar();
 #endif
 	}
 
