@@ -556,19 +556,19 @@ public partial class CrossUtility
 
 	public static void ConstrainCursor(bool toOrNotTo = true)
 	{
-#if WIN
+		const double x_factor = 0.25;
+		const double y_factor = 0.06;
+
 		var x = Screen.Width;
 		var y = Screen.Height;
 
-		const int x_factor = 4;
-		const int y_factor = 15;
-
+#if WIN
 		var dimensions = new LowLevel_APIs.RECT
 		{
-			Left = x / x_factor,
-			Top = y / y_factor,
-			Right = x - x / x_factor,
-			Bottom = y - y / y_factor
+			Left = (int)(x * x_factor),
+			Top = (int)(y * (y_factor + 0.15)),
+			Right = (int)(x - x * x_factor),
+			Bottom = (int)(y - y * y_factor)
 		};
 
 		if (toOrNotTo)
@@ -576,41 +576,52 @@ public partial class CrossUtility
 		else
 			LowLevel_APIs.ClipCursor(IntPtr.Zero);
 #elif MAC
-		var screenR = Screen.Width;
-		var screenL = 0;
-		var screenT = 0;
-		var screenB = Screen.Height;
-		var screenX = Screen.Width;
-		var screenY = Screen.Height;
+		double screenR = Screen.Width;
+		double screenL = 0;
+		double screenT = 0;
+		double screenB = Screen.Height;
 
-		// Calculating 25% of screen width
-		var offsetX = (int)(screenX * 0.25f);
-
-		// Calculating 10% of screen height
-		var offsetY = (int)(screenY * 0.10f);
+		// Calculating Offsets
+		var offsetX = x * x_factor;
+		var offsetY = y * y_factor;
 
 		// Updating right and left boundaries
 		screenR -= offsetX;
 		screenL += offsetX;
 
 		// Updating top and bottom boundaries
-		screenT += offsetY;
-		screenB -= offsetY;
+		screenT += (offsetY * 1.5);
+		screenB -= (offsetY * 4.5);
 
 		// Fetching current mouse location
 		var nsPoint = LowLevel_APIs.GetClass("NSEvent");
 		var selectR = LowLevel_APIs.RegisterName("mouseLocation");
 		var cursPos = LowLevel_APIs.SendMessage_CGPoint(nsPoint, selectR);
 
-		// If the cursor is within the allowed area, just return.
-		if (!(cursPos.x < screenL || cursPos.x > screenR))
+		bool isCursorInRestrictedArea = false;
+		var allowedPositionX = cursPos.x;
+		var allowedPositionY = cursPos.y;
+
+		// Check and adjust X position if needed
+		if (cursPos.x < screenL || cursPos.x > screenR)
+		{
+			isCursorInRestrictedArea = true;
+			allowedPositionX = cursPos.x < screenL ? screenL : screenR;
+		}
+
+		// Check and adjust Y position if needed
+		if (cursPos.y < screenT || cursPos.y > screenB)
+		{
+			isCursorInRestrictedArea = true;
+			allowedPositionY = cursPos.y < screenT ? screenT : screenB;
+		}
+
+		// If the cursor is already within the allowed area, just return
+		if (!isCursorInRestrictedArea)
 			return;
 
-		// If cursor is in restricted area, move it to the nearest allowed area.
-		var allowedPosition = cursPos.x < screenL ? screenL : screenR;
-
-		// Flip Y coordinate when creating fake mouse event in the desired position.
-		var newLocation = new LowLevel_APIs.CoreGraphics.CGPoint(allowedPosition, screenY - cursPos.y);
+		// Flip Y coordinate when creating a custom mouse event in the desired position.
+		var newLocation = new LowLevel_APIs.CoreGraphics.CGPoint(allowedPositionX, y - allowedPositionY);
 		var cursorEvent = LowLevel_APIs.CoreGraphics.CGEventCreateMouseEvent(IntPtr.Zero, LowLevel_APIs.CoreGraphics.kCGEventMouseMoved, newLocation, 0);
 
 		// Disassociate mouse cursor from real events.
