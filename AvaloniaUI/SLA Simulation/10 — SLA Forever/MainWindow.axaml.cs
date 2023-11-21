@@ -46,6 +46,10 @@ public partial class MainWindow : Window
 	{
 		Interval = TimeSpan.FromSeconds(1)
 	};
+	private static readonly DispatcherTimer _primeGuardTimer = new(DispatcherPriority.MaxValue)
+	{
+		Interval = TimeSpan.FromMilliseconds(1)
+	};
 	private static DateTime _openTime = DateTime.MinValue;
 	private static TimeSpan _exitTime = TimeSpan.Zero;
 
@@ -129,6 +133,7 @@ public partial class MainWindow : Window
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
+			_primeGuardTimer.Tick += IsDesigning ? ForceActivate : Runner;
 			_backgroundTimer.Start();
 		}
 
@@ -145,7 +150,7 @@ public partial class MainWindow : Window
 			AddHandler(KeyDownEvent, handleEvent, handledEventsToo: true);
 		}
 
-		// Pin to all Desktops
+		// Pin to all Desktops (Changing the Window Style)
 		{
 			var handle = TryGetPlatformHandle()!;
 			CrossUtility.PinToAllDesktops(handle.Handle);
@@ -182,6 +187,12 @@ public partial class MainWindow : Window
 		this.BringIntoView();
 	}
 
+	private void Runner(object _ = null, object __ = null)
+	{
+		ForceActivate();
+		CrossUtility.ConstrainCursor();
+	}
+
 	// Event Handlers:
 	// ---------------
 
@@ -193,6 +204,7 @@ public partial class MainWindow : Window
 
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
 		Deactivated += ForceActivate;
+		_primeGuardTimer.Start();
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -217,16 +229,13 @@ public partial class MainWindow : Window
 		_exitTime = DateTime.Now.Subtract(_openTime);
 		_closeButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
-
-		if (IsDesigning) return;
-		ForceActivate();
-		CrossUtility.ConstrainCursor();
 	}
 
 	private void LoginButton_Click(object _, RoutedEventArgs __)
 	{
 		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
 		Deactivated -= ForceActivate;
+		_primeGuardTimer.Stop();
 
 		// Handle _exitTime here
 
@@ -362,9 +371,9 @@ public partial class CrossUtility
 		public static readonly int Width = LowLevel_APIs.CoreGraphics.CGDisplayPixelsWide(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
 		public static readonly int Height = LowLevel_APIs.CoreGraphics.CGDisplayPixelsHigh(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
 #endif
-    }
+	}
 
-    public static string GetCurrentUser()
+	public static string GetCurrentUser()
 	{
 #if WIN
 		// Note for the Complication in-case on Windows
