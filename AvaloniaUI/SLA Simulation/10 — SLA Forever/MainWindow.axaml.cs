@@ -21,13 +21,14 @@ public class Constants
 	// -------------------
 
 	public const bool EnableAPI = true;
+	public const bool EnablePrimeGuard = true;
 	public const bool EnableDiscordReporting = true;
 	public const bool EnableDatabaseLogging = true;
 
 	// Other Constants
 	// ---------------
 
-	public const string ApplicationVersion = "1.0.0.0";
+	public const string ApplicationVersion = "3.0.0.0";
 	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
 }
 
@@ -109,11 +110,11 @@ public partial class MainWindow : Window
 			_reasonsDetail = this.FindControl<TextBox>("txtReasonDetail")!;
 		}
 
-		if (OperatingSystem.IsMacOS())
+		if (OperatingSystem.IsWindows())
 		{
 
 		}
-		else if (OperatingSystem.IsWindows())
+		else if (OperatingSystem.IsMacOS())
 		{
 
 		}
@@ -129,11 +130,11 @@ public partial class MainWindow : Window
 	private void OtherInitializations()
 	{
 		ReasonsAll.Sort((x, y) => string.Compare(x.Value, y.Value, StringComparison.OrdinalIgnoreCase));
-
+		
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
-			_primeGuardTimer.Tick += IsDesigning ? ForceActivate : Runner;
+			_primeGuardTimer.Tick += !Constants.EnablePrimeGuard || IsDesigning ? ForceActivate : PrimeGuard;
 			_backgroundTimer.Start();
 		}
 
@@ -187,7 +188,7 @@ public partial class MainWindow : Window
 		this.BringIntoView();
 	}
 
-	private void Runner(object _ = null, object __ = null)
+	private void PrimeGuard(object _ = null, object __ = null)
 	{
 		ForceActivate();
 		CrossUtility.RestrictOSFeatures();
@@ -266,6 +267,44 @@ public partial class MainWindow : Window
 
 public class WebAPI
 {
+	private static readonly HttpClient _webClient = new()
+	{
+		BaseAddress = new Uri("https://sla.cash-n-cash.co.uk/api/products/")
+	};
+
+	// The Endpoints
+	// -------------
+
+	private const string deployedVersion = "GetCurrentSLAVersion";
+	private const string databaseConnect = "GetCheckDBConnection";
+	private const string slaEntryLogging = "GetSLALogEntries";
+
+	// Main Methods
+	// ------------
+
+	public static bool VerifyVersion()
+	{
+		if (!ConnectedToInternet()) return true;
+		var version = GetDataFrom(deployedVersion);
+
+		return new Version(Constants.ApplicationVersion).CompareTo(new Version(version)) >= 0;
+	}
+
+	public static bool VerifyDatabase()
+	{
+		if (!ConnectedToInternet()) return false;
+		var status = GetDataFrom(databaseConnect);
+
+		try
+		{
+			return bool.Parse(status);
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
 	public static void L1_RegisterException(Exception x)
 	{
 		// Fetching Footprints
@@ -293,8 +332,8 @@ public class WebAPI
 			$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
 		};
 
-		// Creating the Body
-		// -----------------
+		// Body Building
+		// -------------
 
 		var body = new
 		{
@@ -347,13 +386,44 @@ public class WebAPI
 		// Sending the Request
 		// -------------------
 
-		var client = new HttpClient();
-		var request = new HttpRequestMessage(HttpMethod.Post, Constants.DiscordWebhookURL)
+		using var request = new HttpRequestMessage(HttpMethod.Post, Constants.DiscordWebhookURL)
 		{
-			Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(body))
+			Content = new StringContent(
+				System.Text.Json.JsonSerializer.Serialize(body),
+				new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
+			)
 		};
-		request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-		_ = client.SendAsync(request).Result;
+		_ = _webClient.SendAsync(request).Result;
+	}
+
+	// Utilities
+	// ---------
+
+	public static bool ConnectedToInternet()
+	{
+		var connected = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
+		if (!connected) return false;
+
+		// GetIsNetworkAvailable is Fast but Unreliable for 'true'
+		// So, we go for the slower method, if that returns 'true'
+
+		try
+		{
+			using var web = new HttpClient();
+			using var res = web.GetAsync("https://google.com/generate_204").Result;
+			connected = res.IsSuccessStatusCode;
+		}
+		catch
+		{
+			connected = false;
+		}
+		return connected;
+	}
+
+	private static string GetDataFrom(string endPoint)
+	{
+		using var res = _webClient.GetAsync(endPoint).Result;
+		return res.Content.ReadAsStringAsync().Result.Trim('"');
 	}
 }
 
