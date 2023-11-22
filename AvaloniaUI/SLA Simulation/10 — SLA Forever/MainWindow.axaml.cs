@@ -15,7 +15,7 @@ using System.Net.Http;
 
 namespace SLA_Remake;
 
-public class Constants
+public static class Constants
 {
 	// Command and Control
 	// -------------------
@@ -265,7 +265,7 @@ public partial class MainWindow : Window
 	}
 }
 
-public class WebAPI
+public static class WebAPI
 {
 	private static readonly HttpClient _webClient = new()
 	{
@@ -427,7 +427,64 @@ public class WebAPI
 	}
 }
 
-public partial class CrossUtility
+public static class Database
+{
+	public class LogEntry
+	{
+		public string UserId { get; set; }
+		public string UserName { get; set; }
+		public string UserIp { get; set; }
+		public string LogDate { get; set; }
+		public string LogInTime { get; set; }
+		public string LogOutTime { get; set; }
+		public string LogFlag { get; set; }
+		public string Reason { get; set; }
+		public string ReasonType { get; set; }
+		public string ReasonId { get; set; }
+		public string UserPCName { get; set; }
+		public string UserDisplayName { get; set; }
+		public string LogSide { get; set; }
+	}
+
+	public static class QueryBuilder<T>
+	{
+		private static readonly Type _type_i = typeof(T);
+		private static readonly string _name = _type_i.Name;
+		private static readonly System.Reflection.PropertyInfo[] _properties = _type_i.GetProperties();
+		private static readonly List<string> _header = _properties.Select(p => p.Name).ToList();
+		private static readonly List<string> _values = _properties.Select(p => $"@{p.Name}").ToList();
+
+		public static string GenerateTable()
+		{
+			var query = $"CREATE TABLE IF NOT EXISTS {_name} ({string.Join(", ", _header)});";
+			return query;
+		}
+
+		public static string Insert()
+		{
+			var query = $"INSERT INTO {_name} ({string.Join(", ", _header)}) VALUES ({string.Join(", ", _values)});";
+			return query;
+		}
+
+		public static string SelectAll()
+		{
+			var query = $"SELECT * FROM {_name};";
+			return query;
+		}
+
+		public static string DropTable()
+		{
+			var query = $"DROP TABLE IF EXISTS {_name};";
+			return query;
+		}
+	}
+
+	private const string SQLiteStorageLoc = @"D:\Database.sqlite";
+	private const string ConnectionString = $"Data Source={SQLiteStorageLoc};Version=3;";
+	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
+}
+
+public static partial class CrossUtility
 {
 	public static partial class Screen
 	{
@@ -636,7 +693,7 @@ public partial class CrossUtility
 	}
 }
 
-public partial class LowLevel_APIs
+public static partial class LowLevel_APIs
 {
 	public static readonly bool Is64Bit = IntPtr.Size == 8;
 
