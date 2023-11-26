@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Linq;
 using Avalonia.Media;
 using System.Net.Http;
+using Dapper;
 
 namespace SLA_Remake;
 
@@ -20,7 +21,7 @@ public static class Constants
 	// Command and Control
 	// -------------------
 
-	public const bool EnableAPI = true;
+	public const bool EnableWebAPI = true;
 	public const bool EnablePrimeGuard = true;
 	public const bool EnableDiscordReporting = true;
 	public const bool EnableDatabaseLogging = true;
@@ -28,7 +29,7 @@ public static class Constants
 	// Other Constants
 	// ---------------
 
-	public const string ApplicationVersion = "3.0.0.0";
+	public const string ApplicationVersion = "3.0.0.00";
 	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
 }
 
@@ -50,6 +51,10 @@ public partial class MainWindow : Window
 	private static readonly DispatcherTimer _primeGuardTimer = new(DispatcherPriority.MaxValue)
 	{
 		Interval = TimeSpan.FromMilliseconds(1)
+	};
+	private static readonly DispatcherTimer _noInternetTimer = new(DispatcherPriority.MaxValue)
+	{
+		Interval = TimeSpan.FromSeconds(10)
 	};
 	private static DateTime _openTime = DateTime.MinValue;
 	private static TimeSpan _exitTime = TimeSpan.Zero;
@@ -130,11 +135,12 @@ public partial class MainWindow : Window
 	private void OtherInitializations()
 	{
 		ReasonsAll.Sort((x, y) => string.Compare(x.Value, y.Value, StringComparison.OrdinalIgnoreCase));
-		
+
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
-			_primeGuardTimer.Tick += !Constants.EnablePrimeGuard || IsDesigning ? ForceActivate : PrimeGuard;
+			_primeGuardTimer.Tick += !Constants.EnablePrimeGuard || IsDesigning ? ForceActivate : PrimeGuard_Tick;
+			_noInternetTimer.Tick += Internet_TickTask;
 			_backgroundTimer.Start();
 		}
 
@@ -151,7 +157,7 @@ public partial class MainWindow : Window
 			AddHandler(KeyDownEvent, handleEvent, handledEventsToo: true);
 		}
 
-		// Pin to all Desktops (Changing the Window Style)
+		// Pin to all Desktops (Windows)
 		{
 			var handle = TryGetPlatformHandle()!;
 			CrossUtility.PinToAllDesktops(handle.Handle);
@@ -188,10 +194,10 @@ public partial class MainWindow : Window
 		this.BringIntoView();
 	}
 
-	private void PrimeGuard(object _ = null, object __ = null)
+	private static void RunNoInternetJob()
 	{
-		ForceActivate();
-		CrossUtility.RestrictOSFeatures();
+		if (_noInternetTimer.IsEnabled) return;
+		_noInternetTimer.Start();
 	}
 
 	// Event Handlers:
@@ -206,6 +212,14 @@ public partial class MainWindow : Window
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
 		Deactivated += ForceActivate;
 		_primeGuardTimer.Start();
+
+		if (!WebAPI.VerifyDatabase())
+		{
+			// 1. Save the entry to the Database
+			RunNoInternetJob();
+			return;
+		}
+		// Post the entries to the API
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -216,6 +230,12 @@ public partial class MainWindow : Window
 	public static void WindowClosed(object _, EventArgs __)
 	{
 		// Disable Window Closing
+	}
+
+	private void PrimeGuard_Tick(object _ = null, object __ = null)
+	{
+		ForceActivate();
+		CrossUtility.RestrictOSFeatures();
 	}
 
 	private void BackgroundTimer_Tick(object _, EventArgs __)
@@ -232,6 +252,17 @@ public partial class MainWindow : Window
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
 	}
 
+	private static void Internet_TickTask(object _ = null, object __ = null)
+	{
+		if (!WebAPI.VerifyDatabase()) return;
+
+		var entries = Database.GetSavedEntries();
+		// post the entries to the API
+		// if (could not be posted) return;
+		Database.Clear();
+		_noInternetTimer.Stop();
+	}
+
 	private void LoginButton_Click(object _, RoutedEventArgs __)
 	{
 		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
@@ -243,6 +274,14 @@ public partial class MainWindow : Window
 		CrossUtility.AllowOSFeatures();
 		ResetFields();
 		Hide();
+
+		if (!WebAPI.VerifyDatabase())
+		{
+			// 1. Update the entry to the Database
+			RunNoInternetJob();
+			return;
+		}
+		// Post the entries to the API
 	}
 
 	private void ReasonsBox_SelectionChanged(object _, SelectionChangedEventArgs __)
@@ -277,7 +316,7 @@ public static class WebAPI
 
 	private const string deployedVersion = "GetCurrentSLAVersion";
 	private const string databaseConnect = "GetCheckDBConnection";
-	private const string slaEntryLogging = "GetSLALogEntries";
+	private const string logEntryLogging = "GetSLALogEntries";
 
 	// Main Methods
 	// ------------
@@ -446,9 +485,9 @@ public static class Database
 		public string LogSide { get; set; }
 	}
 
-	public static class QueryBuilder<T>
+	public static class QueryBuilder
 	{
-		private static readonly Type _type_i = typeof(T);
+		private static readonly Type _type_i = typeof(LogEntry);
 		private static readonly string _name = _type_i.Name;
 		private static readonly System.Reflection.PropertyInfo[] _properties = _type_i.GetProperties();
 		private static readonly List<string> _header = _properties.Select(p => p.Name).ToList();
@@ -466,6 +505,12 @@ public static class Database
 			return query;
 		}
 
+		public static string UpdateLast()
+		{
+			var query = $"UPDATE {_name} SET {string.Join(", ", _header.Select(h => $"{h} = @{h}"))} WHERE ROWID = (SELECT MAX(ROWID) FROM {_name});";
+			return query;
+		}
+
 		public static string SelectAll()
 		{
 			var query = $"SELECT * FROM {_name};";
@@ -479,9 +524,52 @@ public static class Database
 		}
 	}
 
-	private const string SQLiteStorageLoc = @"D:\Database.sqlite";
+	private const string SQLiteStorageLoc = "Database.sqlite";
 	private const string ConnectionString = $"Data Source={SQLiteStorageLoc};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
+
+	public static int Save(LogEntry entry = null)
+	{
+		Connection.Open();
+		var query = QueryBuilder.GenerateTable();
+		var result = Connection.Execute(query);
+
+		if (entry != null)
+		{
+			query = QueryBuilder.Insert();
+			result = Connection.Execute(query, entry);
+		}
+
+		Connection.Close();
+		return result;
+	}
+
+	public static List<LogEntry> GetSavedEntries()
+	{
+		Connection.Open();
+		var query = QueryBuilder.SelectAll();
+		var result = Connection.Query<LogEntry>(query).ToList();
+		Connection.Close();
+		return result;
+	}
+
+	public static int Update(LogEntry entry)
+	{
+		Connection.Open();
+		var query = QueryBuilder.UpdateLast();
+		var result = Connection.Execute(query, entry);
+		Connection.Close();
+		return result;
+	}
+
+	public static int Clear()
+	{
+		Connection.Open();
+		var query = QueryBuilder.DropTable();
+		var result = Connection.Execute(query);
+		Connection.Close();
+		return result;
+	}
 }
 
 public static partial class CrossUtility
@@ -635,8 +723,8 @@ public static partial class CrossUtility
 #elif MAC
 		double screenR = Screen.Width;
 		double screenL = 0;
-		double screenT = 0;
-		double screenB = Screen.Height;
+		double screenT = Screen.Height;
+		double screenB = 0;
 
 		// Calculating Offsets
 		var offsetX = x * x_factor;
@@ -647,8 +735,8 @@ public static partial class CrossUtility
 		screenL += offsetX;
 
 		// Updating top and bottom boundaries
-		screenT += (offsetY * 1.5);
-		screenB -= (offsetY * 4.5);
+		screenT -= (offsetY * 4.5);
+		screenB += (offsetY * 1.8);
 
 		// Fetching current mouse location
 		var nsPoint = LowLevel_APIs.GetClass("NSEvent");
@@ -667,10 +755,10 @@ public static partial class CrossUtility
 		}
 
 		// Check and adjust Y position if needed
-		if (cursPos.y < screenT || cursPos.y > screenB)
+		if (cursPos.y < screenB || cursPos.y > screenT)
 		{
 			isCursorInRestrictedArea = true;
-			allowedPositionY = cursPos.y < screenT ? screenT : screenB;
+			allowedPositionY = cursPos.y < screenB ? screenB : screenT;
 		}
 
 		// If the cursor is already within the allowed area, just return
