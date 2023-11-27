@@ -13,6 +13,9 @@ using System.Linq;
 using Avalonia.Media;
 using System.Net.Http;
 using Dapper;
+using System.Globalization;
+using System.Net;
+using ReasonType = System.Tuple<uint, bool, string>;
 
 namespace SLA_Remake;
 
@@ -21,15 +24,16 @@ public static class Constants
 	// Command and Control
 	// -------------------
 
-	public const bool EnableWebAPI = true;
+	public const bool EnableTheInternet = true;
 	public const bool EnablePrimeGuard = true;
-	public const bool EnableDiscordReporting = true;
-	public const bool EnableDatabaseLogging = true;
+	public const bool EnableLogOnDiscord = true;
+	public const bool EnableLoggingOnAPI = true;
+	public const bool EnableCacheLogging = true;
 
 	// Other Constants
 	// ---------------
 
-	public const string ApplicationVersion = "3.0.0.00";
+	public const string ApplicationVersion = "2.0.0.01";
 	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
 }
 
@@ -37,6 +41,7 @@ public partial class MainWindow : Window
 {
 	private readonly bool IsDesigning = Design.IsDesignMode;
 	private readonly TimeSpan _idleAllowed = TimeSpan.FromSeconds(10);
+	private readonly TimeSpan _postmanTime = TimeSpan.FromSeconds(15);
 	private const string _loginPlaceholder = "Login - 00:00:00";
 
 	private readonly TextBox _reasonsDetail;
@@ -50,35 +55,32 @@ public partial class MainWindow : Window
 	};
 	private static readonly DispatcherTimer _primeGuardTimer = new(DispatcherPriority.MaxValue)
 	{
-		Interval = TimeSpan.FromMilliseconds(1)
-	};
-	private static readonly DispatcherTimer _noInternetTimer = new(DispatcherPriority.MaxValue)
-	{
-		Interval = TimeSpan.FromSeconds(10)
+		Interval = TimeSpan.FromMilliseconds(1.2)
 	};
 	private static DateTime _openTime = DateTime.MinValue;
 	private static TimeSpan _exitTime = TimeSpan.Zero;
 
-	public static List<KeyValuePair<bool, string>> ReasonsAll { get; } = new()
+	public static List<ReasonType> ReasonsAll { get; } = new()
 	{
-		new KeyValuePair<bool, string>(false, "System Reboot"),
-		new KeyValuePair<bool, string>(false, "Break"),
-		new KeyValuePair<bool, string>(false, "Rest Room"),
-		new KeyValuePair<bool, string>(false, "Namaz"),
-		new KeyValuePair<bool, string>(false, "Lunch"),
-		new KeyValuePair<bool, string>(false, "Dinner"),
-		new KeyValuePair<bool, string>(false, "Late Leave"),
-		new KeyValuePair<bool, string>(false, "Short Leave"),
-		new KeyValuePair<bool, string>(false, "Half Leave"),
-		new KeyValuePair<bool, string>(true, "On Official Call / Duty"),
-		new KeyValuePair<bool, string>(true, "Filing / Paper Work"),
-		new KeyValuePair<bool, string>(true, "Official Outgoing"),
-		new KeyValuePair<bool, string>(true, "Official Gathering"),
-		new KeyValuePair<bool, string>(true, "Seminar / Training / Presentation / Lecture"),
-		new KeyValuePair<bool, string>(true, "Departmental Discussion"),
-		new KeyValuePair<bool, string>(true, "Formal Meeting"),
-		new KeyValuePair<bool, string>(true, "Informal Meeting"),
-		new KeyValuePair<bool, string>(true, "Other")
+		new(1, false, "Start of the Day"),
+		new(2, false, "System Reboot"),
+		new(3, false, "Break"),
+		new(4, false, "Rest Room"),
+		new(5, false, "Namaz"),
+		new(6, false, "Lunch"),
+		new(7, false, "Dinner"),
+		new(8, false, "Late Leave"),
+		new(9, false, "Short Leave"),
+		new(10, false, "Half Leave"),
+		new(11, true, "On Official Call / Duty"),
+		new(12, true, "Filing / Paper Work"),
+		new(13, true, "Official Outgoing"),
+		new(14, true, "Official Gathering"),
+		new(15, true, "Seminar / Training / Presentation / Lecture"),
+		new(16, true, "Departmental Discussion"),
+		new(17, true, "Formal Meeting"),
+		new(18, true, "Informal Meeting"),
+		new(19, true, "Other")
 	};
 
 	public static readonly List<Key> RestrictedKeys = new()
@@ -134,13 +136,12 @@ public partial class MainWindow : Window
 
 	private void OtherInitializations()
 	{
-		ReasonsAll.Sort((x, y) => string.Compare(x.Value, y.Value, StringComparison.OrdinalIgnoreCase));
+		ReasonsAll.Sort((x, y) => string.Compare(x.Item3, y.Item3, StringComparison.OrdinalIgnoreCase));
 
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
-			_primeGuardTimer.Tick += !Constants.EnablePrimeGuard || IsDesigning ? ForceActivate : PrimeGuard_Tick;
-			_noInternetTimer.Tick += Internet_TickTask;
+			_primeGuardTimer.Tick += !Constants.EnablePrimeGuard || IsDesigning ? NoOperation : PrimeGuard_Tick;
 			_backgroundTimer.Start();
 		}
 
@@ -150,6 +151,19 @@ public partial class MainWindow : Window
 		}
 
 		if (IsDesigning) return;
+
+		// Starting Postman
+		{
+			if (!Constants.EnableLoggingOnAPI) return;
+			System.Threading.Tasks.Task.Run(async () =>
+			{
+				while (true)
+				{
+					await System.Threading.Tasks.Task.Delay(_postmanTime);
+					PostmanJob();
+				}
+			});
+		}
 
 		// Restricting Keys
 		{
@@ -194,32 +208,55 @@ public partial class MainWindow : Window
 		this.BringIntoView();
 	}
 
-	private static void RunNoInternetJob()
+	private static void PostmanJob(object _ = null, object __ = null)
 	{
-		if (_noInternetTimer.IsEnabled) return;
-		_noInternetTimer.Start();
+		try
+		{
+			if (!Constants.EnableCacheLogging) return;
+
+			if (!WebAPI.VerifyDatabase()) return;
+			var entries = Database.GetSavedEntries();
+
+			if (entries.Count == 0) return;
+			var success = WebAPI.SendEntries(entries);
+
+			if (!success) return;
+			Database.Clear();
+		}
+		catch (Exception e)
+		{
+			WebAPI.L1_RegisterException(e);
+		}
 	}
+
+	private static void NoOperation(object _ = null, object __ = null) { }
 
 	// Event Handlers:
 	// ---------------
 
 	private void WindowOpened(object _, EventArgs __)
 	{
+		// Time Tracking
+		// -------------
+
 		_openTime = DateTime.Now;
 		_exitTime = TimeSpan.Zero;
 		_closeButton.Content = _loginPlaceholder;
 
+		// Timers Initialization
+		// ---------------------
+
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
-		Deactivated += ForceActivate;
+		Deactivated += Constants.EnablePrimeGuard ? ForceActivate : NoOperation;
 		_primeGuardTimer.Start();
 
-		if (!WebAPI.VerifyDatabase())
-		{
-			// 1. Save the entry to the Database
-			RunNoInternetJob();
-			return;
-		}
-		// Post the entries to the API
+		if (IsDesigning) return;
+
+		// Database Logging
+		// ----------------
+
+		var entry = Database.LogEntry.Create(login: false);
+		Database.Save(entry);
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -252,48 +289,48 @@ public partial class MainWindow : Window
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
 	}
 
-	private static void Internet_TickTask(object _ = null, object __ = null)
-	{
-		if (!WebAPI.VerifyDatabase()) return;
-
-		var entries = Database.GetSavedEntries();
-		// post the entries to the API
-		// if (could not be posted) return;
-		Database.Clear();
-		_noInternetTimer.Stop();
-	}
-
 	private void LoginButton_Click(object _, RoutedEventArgs __)
 	{
+		Hide();
+
+		// Stopping Timers
+		// ---------------
+
 		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
 		Deactivated -= ForceActivate;
 		_primeGuardTimer.Stop();
 
-		// Handle _exitTime here
+		// _exitTime Interval can be handled here
+
+		if (IsDesigning) return;
+
+		// Database Logging
+		// ----------------
+
+		var entry = Database.LogEntry.Create(
+			login: true,
+			reasonDetail: _reasonsDetail.Text,
+			reason: (ReasonType)_reasonsBox.SelectedItem
+		);
+		Database.Save(entry);
+
+		// Release Restrictions
+		// --------------------
 
 		CrossUtility.AllowOSFeatures();
 		ResetFields();
-		Hide();
-
-		if (!WebAPI.VerifyDatabase())
-		{
-			// 1. Update the entry to the Database
-			RunNoInternetJob();
-			return;
-		}
-		// Post the entries to the API
 	}
 
 	private void ReasonsBox_SelectionChanged(object _, SelectionChangedEventArgs __)
 	{
-		if (_reasonsBox.SelectedItem is not KeyValuePair<bool, string> kvp) return;
-		_reasonsDetail.IsVisible = kvp.Key;
-		_closeButton.IsEnabled = !(kvp.Key && string.IsNullOrWhiteSpace(_reasonsDetail.Text));
+		if (_reasonsBox.SelectedItem is not ReasonType kvp) return;
+		_reasonsDetail.IsVisible = kvp.Item2;
+		_closeButton.IsEnabled = !(kvp.Item2 && string.IsNullOrWhiteSpace(_reasonsDetail.Text));
 	}
 
 	private void ReasonsDetail_TextChanged(object _, RoutedEventArgs __)
 	{
-		if (_reasonsBox.SelectedItem is not KeyValuePair<bool, string>) return;
+		if (_reasonsBox.SelectedItem is not ReasonType) return;
 		_closeButton.IsEnabled = !string.IsNullOrWhiteSpace(_reasonsDetail.Text) && _reasonsDetail.Text.Length > 4;
 	}
 
@@ -344,8 +381,26 @@ public static class WebAPI
 		}
 	}
 
+	public static bool SendEntries(List<Database.LogEntry> entries)
+	{
+		if (!ConnectedToInternet()) return false;
+
+		using var req = new HttpRequestMessage(HttpMethod.Post, logEntryLogging)
+		{
+			Content = new StringContent(
+				Serialize(entries),
+				new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
+			)
+		};
+		using var res = _webClient.SendAsync(req).Result;
+
+		return res.Content.ReadAsStringAsync().Result == "1";
+	}
+
 	public static void L1_RegisterException(Exception x)
 	{
+		if (!Constants.EnableLogOnDiscord) return;
+
 		// Fetching Footprints
 		// -------------------
 
@@ -440,6 +495,8 @@ public static class WebAPI
 
 	public static bool ConnectedToInternet()
 	{
+		if (!Constants.EnableTheInternet) return false;
+
 		var connected = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
 		if (!connected) return false;
 
@@ -464,6 +521,28 @@ public static class WebAPI
 		using var res = _webClient.GetAsync(endPoint).Result;
 		return res.Content.ReadAsStringAsync().Result.Trim('"');
 	}
+
+	private static string Serialize(IEnumerable<Database.LogEntry> entries)
+	{
+		var entriesFormatted = entries.Select(entry =>
+		{
+			var properties = entry.GetType().GetProperties();
+			var values = properties.Select(property => property.GetValue(entry, null));
+			return string.Join("|", values);
+		});
+
+		var now = DateTime.Now;
+		var req = new
+		{
+			UserName = Environment.UserName + '~' + Environment.MachineName,
+			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
+			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
+			version = Constants.ApplicationVersion,
+			data = entriesFormatted
+		};
+
+		return System.Text.Json.JsonSerializer.Serialize(req, new System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
+	}
 }
 
 public static class Database
@@ -483,6 +562,44 @@ public static class Database
 		public string UserPCName { get; set; }
 		public string UserDisplayName { get; set; }
 		public string LogSide { get; set; }
+
+		public static LogEntry Create(bool login = true, string reasonDetail = null, ReasonType reason = null) => new()
+		{
+			UserId = "1",
+			UserName = Environment.UserName,
+			UserIp = Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP)?.ToString(),
+			LogDate = DateTime.Now.Date.ToOADate().ToString(CultureInfo.InvariantCulture),
+			UserPCName = Dns.GetHostName(),
+			UserDisplayName = "USER",
+
+			LogInTime = login
+				? DateTime.Now.ToString("HH:mm")
+				: null,
+			LogOutTime = login
+				? null
+				: DateTime.Now.ToString("HH:mm"),
+			LogFlag = login 
+				? "0" 
+				: "1",
+			Reason = login
+				? reason.Item2
+					? reasonDetail
+					: BackwardCompatibility.GetCompatibleReasonText(reason)
+				: null,
+			ReasonType = login
+				? BackwardCompatibility.GetCompatibleReasonText(reason)
+				: null,
+			ReasonId = login
+				? reason.Item1.ToString(CultureInfo.InvariantCulture)
+				: "0",
+			LogSide = login
+				? "i"
+				: "o"
+		};
+
+		private static bool AllowedIP(IPAddress ip) =>
+			ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+			ip.ToString() != "127.0.0.1";
 	}
 
 	public static class QueryBuilder
@@ -505,21 +622,15 @@ public static class Database
 			return query;
 		}
 
-		public static string UpdateLast()
-		{
-			var query = $"UPDATE {_name} SET {string.Join(", ", _header.Select(h => $"{h} = @{h}"))} WHERE ROWID = (SELECT MAX(ROWID) FROM {_name});";
-			return query;
-		}
-
 		public static string SelectAll()
 		{
 			var query = $"SELECT * FROM {_name};";
 			return query;
 		}
 
-		public static string DropTable()
+		public static string ClearTable()
 		{
-			var query = $"DROP TABLE IF EXISTS {_name};";
+			var query = $"DELETE FROM {_name};";
 			return query;
 		}
 	}
@@ -530,22 +641,34 @@ public static class Database
 
 	public static int Save(LogEntry entry = null)
 	{
-		Connection.Open();
-		var query = QueryBuilder.GenerateTable();
-		var result = Connection.Execute(query);
-
-		if (entry != null)
+		try
 		{
-			query = QueryBuilder.Insert();
-			result = Connection.Execute(query, entry);
-		}
+			if (!Constants.EnableCacheLogging) return 0;
 
-		Connection.Close();
-		return result;
+			Connection.Open();
+			var query = QueryBuilder.GenerateTable();
+			var result = Connection.Execute(query);
+
+			if (entry != null)
+			{
+				query = QueryBuilder.Insert();
+				result = Connection.Execute(query, entry);
+			}
+
+			Connection.Close();
+			return result;
+		}
+		catch
+		{
+			WebAPI.L1_RegisterException(new Exception("Database Error"));
+			return 0;
+		}
 	}
 
 	public static List<LogEntry> GetSavedEntries()
 	{
+		if (!Constants.EnableCacheLogging) return new();
+
 		Connection.Open();
 		var query = QueryBuilder.SelectAll();
 		var result = Connection.Query<LogEntry>(query).ToList();
@@ -553,19 +676,12 @@ public static class Database
 		return result;
 	}
 
-	public static int Update(LogEntry entry)
-	{
-		Connection.Open();
-		var query = QueryBuilder.UpdateLast();
-		var result = Connection.Execute(query, entry);
-		Connection.Close();
-		return result;
-	}
-
 	public static int Clear()
 	{
+		if (!Constants.EnableCacheLogging) return 0;
+
 		Connection.Open();
-		var query = QueryBuilder.DropTable();
+		var query = QueryBuilder.ClearTable();
 		var result = Connection.Execute(query);
 		Connection.Close();
 		return result;
@@ -590,16 +706,17 @@ public static partial class CrossUtility
 
 	public static string GetCurrentUser()
 	{
+		var username = Environment.UserName;
 #if WIN
 		// Note for the Complication in-case on Windows
 		// --------------------------------------------
-		// Here, Username is fetched of the currently Logged-In User
-		// The Environment.UserName is not reliable in this case
+		// Here, Username is fetched of the currently Logged-In User.
+		// The Environment.UserName is not reliable in this case,
 		// as it returns the Username of the User who started the App.
 		// So, Username is fetched, from the currently active Session.
+		// In-case of fetch-failure, the Environment.UserName is used.
 
 		var sessionId = LowLevel_APIs.WTSGetActiveConsoleSessionId();
-		var username = "N/A";
 
 		if (sessionId == 0xFFFFFFFF)
 			return username;
@@ -609,10 +726,9 @@ public static partial class CrossUtility
 
 		username = Marshal.PtrToStringAnsi(buffer) ?? username;
 		LowLevel_APIs.WTSFreeMemory(buffer);
-		return username;
 #elif MAC
-		return Environment.UserName;
 #endif
+		return username;
 	}
 
 	public static void LogOut_theUser(object sender, RoutedEventArgs e)
@@ -633,6 +749,17 @@ public static partial class CrossUtility
 		};
 
 		Process.Start(startInfo);
+	}
+
+	public static void RegisterForStartup()
+	{
+#if WIN
+		using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+		var exeLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+		var appName = System.IO.Path.GetFileNameWithoutExtension(exeLocation);
+		key.SetValue(appName, exeLocation);
+#elif MAC
+#endif
 	}
 
 	public static TimeSpan GetIdleTime()
@@ -778,6 +905,37 @@ public static partial class CrossUtility
 		// Reassociate mouse cursor and real events.
 		LowLevel_APIs.CoreGraphics.CGAssociateMouseAndMouseCursorPosition(true);
 #endif
+	}
+}
+
+public static class BackwardCompatibility
+{
+	private static readonly Dictionary<uint, string> OldReasons = new()
+	{
+		{ 1, "Day Start" },
+		{ 2, "System Restart/Shutdown" },
+		{ 3, "Break" },
+		{ 4, "Rest Room" },
+		{ 5, "Namaz" },
+		{ 6, "Lunch" },
+		{ 7, "Dinner" },
+		{ 8, "Late Leave" },
+		{ 9, "Short Leave" },
+		{ 10, "Half Leave" },
+		{ 11, "On Official Call / On Seat" },
+		{ 12, "Filling / Paper Work" },
+		{ 13, "Official Outgoing" },
+		{ 14, "Company /Departmental Gathering" },
+		{ 15, "Seminar/Lecture/Presentation/Training" },
+		{ 16, "Departmental Discussion (Purpose)" },
+		{ 17, "Formal Meeting" },
+		{ 18, "Informal Meeting" },
+		{ 19, "Other" }
+	};
+
+	public static string GetCompatibleReasonText(ReasonType reason)
+	{
+		return OldReasons.TryGetValue(reason.Item1, out var text) ? text : reason.Item3;
 	}
 }
 
