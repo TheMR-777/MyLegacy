@@ -24,7 +24,7 @@ public static class Constants
 	// Command and Control
 	// -------------------
 
-	public const bool EnableTheInternet = true;
+	public const bool EnableTheInternet = false;
 	public const bool EnablePrimeGuard = true;
 	public const bool EnableLogOnDiscord = true;
 	public const bool EnableLoggingOnAPI = true;
@@ -151,6 +151,11 @@ public partial class MainWindow : Window
 		}
 
 		if (IsDesigning) return;
+
+		// Registering for Startup
+		{
+			CrossUtility.RegisterForStartup();
+		}
 
 		// Starting Postman
 		{
@@ -291,8 +296,6 @@ public partial class MainWindow : Window
 
 	private void LoginButton_Click(object _, RoutedEventArgs __)
 	{
-		Hide();
-
 		// Stopping Timers
 		// ---------------
 
@@ -317,6 +320,7 @@ public partial class MainWindow : Window
 		// Release Restrictions
 		// --------------------
 
+		Hide();
 		CrossUtility.AllowOSFeatures();
 		ResetFields();
 	}
@@ -490,8 +494,8 @@ public static class WebAPI
 		_ = _webClient.SendAsync(request).Result;
 	}
 
-	// Utilities
-	// ---------
+	// Web-Utilities
+	// -------------
 
 	public static bool ConnectedToInternet()
 	{
@@ -565,12 +569,18 @@ public static class Database
 
 		public static LogEntry Create(bool login = true, string reasonDetail = null, ReasonType reason = null) => new()
 		{
+			// Constants
+			// ---------
+
 			UserId = "1",
 			UserName = Environment.UserName,
 			UserIp = Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP)?.ToString(),
 			LogDate = DateTime.Now.Date.ToOADate().ToString(CultureInfo.InvariantCulture),
 			UserPCName = Dns.GetHostName(),
 			UserDisplayName = "USER",
+
+			// Variables
+			// ---------
 
 			LogInTime = login
 				? DateTime.Now.ToString("HH:mm")
@@ -584,10 +594,10 @@ public static class Database
 			Reason = login
 				? reason.Item2
 					? reasonDetail
-					: BackwardCompatibility.GetCompatibleReasonText(reason)
+					: RemoveSpecialCharacters(BackwardCompatibility.GetCompatibleReasonText(reason))
 				: null,
 			ReasonType = login
-				? BackwardCompatibility.GetCompatibleReasonText(reason)
+				? RemoveSpecialCharacters(BackwardCompatibility.GetCompatibleReasonText(reason))
 				: null,
 			ReasonId = login
 				? reason.Item1.ToString(CultureInfo.InvariantCulture)
@@ -600,6 +610,13 @@ public static class Database
 		private static bool AllowedIP(IPAddress ip) =>
 			ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
 			ip.ToString() != "127.0.0.1";
+
+		private static string RemoveSpecialCharacters(string str) =>
+			new(str.Where(c => 
+				char.IsLetterOrDigit(c) || 
+				char.IsWhiteSpace(c) || 
+				new[] { '.', '-', '_' }.Contains(c))
+			.ToArray());
 	}
 
 	public static class QueryBuilder
@@ -688,19 +705,16 @@ public static class Database
 	}
 }
 
-public static partial class CrossUtility
+public static class CrossUtility
 {
-	public static partial class Screen
+	public static class Screen
 	{
 #if WIN
-		[LibraryImport("user32.dll")]
-		private static partial int GetSystemMetrics(int nIndex);
-
-		public static int Width => GetSystemMetrics(0);
-		public static int Height => GetSystemMetrics(1);
+		public static readonly int Wide = LowLevel_APIs.GetSystemMetrics(0);
+		public static readonly int High = LowLevel_APIs.GetSystemMetrics(1);
 #elif MAC
-		public static readonly int Width = LowLevel_APIs.CoreGraphics.CGDisplayPixelsWide(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
-		public static readonly int Height = LowLevel_APIs.CoreGraphics.CGDisplayPixelsHigh(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
+		public static readonly int Wide = LowLevel_APIs.CoreGraphics.CGDisplayPixelsWide(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
+		public static readonly int High = LowLevel_APIs.CoreGraphics.CGDisplayPixelsHigh(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
 #endif
 	}
 
@@ -754,11 +768,59 @@ public static partial class CrossUtility
 	public static void RegisterForStartup()
 	{
 #if WIN
-		using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-		var exeLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+		using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+		var processModule = Process.GetCurrentProcess().MainModule;
+		if (processModule == null) return;
+		var exeLocation = processModule.FileName;
 		var appName = System.IO.Path.GetFileNameWithoutExtension(exeLocation);
 		key.SetValue(appName, exeLocation);
+
 #elif MAC
+		var plistName = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.plist";
+		var plistPath = $"{Environment.GetEnvironmentVariable("HOME")}/Library/LaunchAgents/{plistName}";
+
+		if (!System.IO.File.Exists(plistPath)) 
+		{
+			var plistContent = new System.Text.StringBuilder()
+				.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+				.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">")
+				.AppendLine("<plist version=\"1.0\">")
+				.AppendLine("<dict>")
+				.AppendLine("\t<key>Label</key>")
+				.AppendLine($"\t<string>{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}</string>")
+				.AppendLine("\t<key>ProgramArguments</key>")
+				.AppendLine("\t<array>")
+				.AppendLine($"\t\t<string>{System.Reflection.Assembly.GetExecutingAssembly().Location}</string>")
+				.AppendLine("\t</array>")
+				.AppendLine("\t<key>RunAtLoad</key>")
+				.AppendLine("\t<true/>")
+				.AppendLine("</dict>")
+				.AppendLine("</plist>").ToString();
+
+			System.IO.File.WriteAllText(plistPath, plistContent);
+		}
+
+		var processStartInfo = new System.Diagnostics.ProcessStartInfo
+		{
+			FileName = "/bin/bash",
+			Arguments = $"-c \"launchctl list | grep {System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}\"",
+			RedirectStandardOutput = true,
+			UseShellExecute = false,
+			CreateNoWindow = true,
+		};
+
+		var process = new System.Diagnostics.Process { StartInfo = processStartInfo };
+	
+		process.Start();
+		process.WaitForExit();
+
+		// Start a new process if it isn't already running
+		if (process.ExitCode != 0)
+		{
+			processStartInfo.Arguments = $"-c \"launchctl load {plistPath}\"";
+			process = new System.Diagnostics.Process { StartInfo = processStartInfo };
+			process.Start();
+		}
 #endif
 	}
 
@@ -831,14 +893,16 @@ public static partial class CrossUtility
 		const double x_factor = 0.25;
 		const double y_factor = 0.06;
 
-		var x = Screen.Width;
-		var y = Screen.Height;
+		var x = Screen.Wide;
+		var y = Screen.High;
 
 #if WIN
+		const double adjust_y = 0.15;
+
 		var dimensions = new LowLevel_APIs.RECT
 		{
 			Left = (int)(x * x_factor),
-			Top = (int)(y * (y_factor + 0.15)),
+			Top = (int)(y * (y_factor + adjust_y)),
 			Right = (int)(x - x * x_factor),
 			Bottom = (int)(y - y * y_factor)
 		};
@@ -848,9 +912,13 @@ public static partial class CrossUtility
 		else
 			LowLevel_APIs.ClipCursor(IntPtr.Zero);
 #elif MAC
-		double screenR = Screen.Width;
+		// Adjustments
+		const double adjust_x = 4.5;
+		const double adjust_y = 1.8;
+
+		double screenR = Screen.Wide;
 		double screenL = 0;
-		double screenT = Screen.Height;
+		double screenT = Screen.High;
 		double screenB = 0;
 
 		// Calculating Offsets
@@ -862,8 +930,8 @@ public static partial class CrossUtility
 		screenL += offsetX;
 
 		// Updating top and bottom boundaries
-		screenT -= (offsetY * 4.5);
-		screenB += (offsetY * 1.8);
+		screenT -= (offsetY * adjust_x);
+		screenB += (offsetY * adjust_y);
 
 		// Fetching current mouse location
 		var nsPoint = LowLevel_APIs.GetClass("NSEvent");
@@ -1026,6 +1094,9 @@ public static partial class LowLevel_APIs
 	[LibraryImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool ClipCursor(IntPtr rect);
+
+	[LibraryImport("user32.dll")]
+	public static partial int GetSystemMetrics(int nIndex);
 #elif MAC
 
 	// General APIs
