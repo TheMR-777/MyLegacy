@@ -70,7 +70,7 @@
 
 					<TextBlock
 						HorizontalAlignment="Center"
-						FontSize="14"
+						FontSize="13"
 						Foreground="#FFFFFFFF"
 						Opacity="0.7"
 						Text="Your break is being Recorded. Please select your break type, and Login"/>
@@ -105,6 +105,7 @@
 					SelectedIndex="0"
 					Background="{x:Null}"
 					Margin="0"
+					MaxHeight="400"
 					Padding="10">
 
 					<!-- Rounded Corners for Items -->
@@ -120,12 +121,12 @@
 						<DataTemplate>
 							<StackPanel Orientation="Horizontal">
 								<TextBlock
-									Text="{Binding Value}"
+									Text="{Binding Item3}"
 									Margin="0,0,10,0"/>
 								<TextBlock
 									Text="•"
 									Opacity="0.07"
-									IsVisible="{Binding Key}"/>
+									IsVisible="{Binding Item2}"/>
 							</StackPanel>
 						</DataTemplate>
 					</ListBox.ItemTemplate>

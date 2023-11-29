@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -24,11 +24,14 @@ public static class Constants
 	// Command and Control
 	// -------------------
 
-	public const bool EnableTheInternet = false;
-	public const bool EnablePrimeGuard = true;
-	public const bool EnableLogOnDiscord = true;
-	public const bool EnableLoggingOnAPI = true;
-	public const bool EnableCacheLogging = true;
+	private const bool yes = true;
+	private const bool no = false;
+
+	public const bool EnableTheInternet = yes;
+	public const bool EnablePrimeGuard = yes;
+	public const bool EnableLogOnDiscord = yes;
+	public const bool EnableLoggingOnAPI = yes;
+	public const bool EnableCacheLogging = yes;
 
 	// Other Constants
 	// ---------------
@@ -389,15 +392,7 @@ public static class WebAPI
 	{
 		if (!ConnectedToInternet()) return false;
 
-		using var req = new HttpRequestMessage(HttpMethod.Post, logEntryLogging)
-		{
-			Content = new StringContent(
-				Serialize(entries),
-				new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
-			)
-		};
-		using var res = _webClient.SendAsync(req).Result;
-
+		using var res = PostDataTo(logEntryLogging, Serialize(entries));
 		return res.Content.ReadAsStringAsync().Result == "1";
 	}
 
@@ -458,7 +453,7 @@ public static class WebAPI
 						new()
 						{
 							{ "name", "Method Trail" },
-							{ "value", string.Join(" < ", footprints)},
+							{ "value", $"```{string.Join(" < ", footprints)}```" },
 							{ "inline", "true" }
 						},
 						new()
@@ -484,14 +479,7 @@ public static class WebAPI
 		// Sending the Request
 		// -------------------
 
-		using var request = new HttpRequestMessage(HttpMethod.Post, Constants.DiscordWebhookURL)
-		{
-			Content = new StringContent(
-				System.Text.Json.JsonSerializer.Serialize(body),
-				new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
-			)
-		};
-		_ = _webClient.SendAsync(request).Result;
+		PostDataTo(Constants.DiscordWebhookURL, System.Text.Json.JsonSerializer.Serialize(body));
 	}
 
 	// Web-Utilities
@@ -524,6 +512,18 @@ public static class WebAPI
 	{
 		using var res = _webClient.GetAsync(endPoint).Result;
 		return res.Content.ReadAsStringAsync().Result.Trim('"');
+	}
+
+	private static HttpResponseMessage PostDataTo(string endPoint, string data)
+	{
+		using var req = new HttpRequestMessage(HttpMethod.Post, endPoint)
+		{
+			Content = new StringContent(
+				data,
+				new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
+			)
+		};
+		return _webClient.SendAsync(req).Result;
 	}
 
 	private static string Serialize(IEnumerable<Database.LogEntry> entries)
@@ -592,12 +592,12 @@ public static class Database
 				? "0" 
 				: "1",
 			Reason = login
-				? reason.Item2
+				? RemoveSpecialCharacters(reason.Item2
 					? reasonDetail
-					: RemoveSpecialCharacters(BackwardCompatibility.GetCompatibleReasonText(reason))
+					: BackwardCompatibility.GetCompatibleReasonText(reason))
 				: null,
 			ReasonType = login
-				? RemoveSpecialCharacters(BackwardCompatibility.GetCompatibleReasonText(reason))
+				? BackwardCompatibility.GetCompatibleReasonText(reason)
 				: null,
 			ReasonId = login
 				? reason.Item1.ToString(CultureInfo.InvariantCulture)
@@ -652,8 +652,9 @@ public static class Database
 		}
 	}
 
-	private const string SQLiteStorageLoc = "Database.sqlite";
-	private const string ConnectionString = $"Data Source={SQLiteStorageLoc};Version=3;";
+	private const string DatabaseFullName = "Database.sqlite";
+	private static readonly string DatabaseLocation = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DatabaseFullName);
+	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
 	public static int Save(LogEntry entry = null)
@@ -980,6 +981,8 @@ public static class BackwardCompatibility
 {
 	private static readonly Dictionary<uint, string> OldReasons = new()
 	{
+		// The Dictionary is being used, to maintain the order (of IDs) of the Reasons.
+
 		{ 1, "Day Start" },
 		{ 2, "System Restart/Shutdown" },
 		{ 3, "Break" },
@@ -1117,7 +1120,7 @@ public static partial class LowLevel_APIs
 	// Note for the Complication of 'objc_msgSend'
 	// -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
 	// 1stly, the Return Type is dependant on the Method Signature.
-	// 2ndly, this methos has variadic arguments, of variadic types.
+	// 2ndly, this method has variadic arguments, of variadic types.
 	// Thus, we need to create multiple overloads of this method.
 
 	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]

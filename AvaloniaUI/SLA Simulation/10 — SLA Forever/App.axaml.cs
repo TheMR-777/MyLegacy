@@ -1,11 +1,14 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 
 namespace SLA_Remake;
 
-public partial class App : Application
+public class App : Application
 {
+	public static readonly SingleGlobalInstance Lock = new("SLA_Remake_a93hg9-m49hf9wh-mgh39gj-ahgh74-r6hg93");
+
 	public override void Initialize()
 	{
 		AvaloniaXamlLoader.Load(this);
@@ -17,9 +20,65 @@ public partial class App : Application
 		{
 			desktop.ShutdownRequested += MainWindow.WindowClosing;
 			desktop.Exit += MainWindow.WindowClosed;
-			desktop.MainWindow = new MainWindow();
+
+			desktop.MainWindow = 
+				!Lock.TryAcquireExclusiveLock() ? MakeAlternateWindow("SLA is already running", "SLA is already running. Only one instance of SLA can be running at a time.") :
+				!WebAPI.VerifyVersion() ? MakeAlternateWindow("Outdated SLA", "This version of SLA is outdated. Please contact the NSS/ASC Department for the newer version.") :
+				new MainWindow();
 		}
 
 		base.OnFrameworkInitializationCompleted();
+	}
+
+	// Utilities
+	// ---------
+
+	private static Avalonia.Controls.Window MakeAlternateWindow(string title, string content) => new()
+	{
+		Width = 400,
+		Height = 200,
+		WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterScreen,
+		Background = Avalonia.Media.Brush.Parse("#6E0D25"),
+		Title = title,
+		Content = new Avalonia.Controls.SelectableTextBlock
+		{
+			FontSize = 15,
+			Opacity = 0.8,
+			LineHeight = 20,
+			Margin = new Thickness(10),
+			Padding = new Thickness(10),
+			FontWeight = Avalonia.Media.FontWeight.Bold,
+			Foreground = Avalonia.Media.Brushes.White,
+			SelectionBrush = Avalonia.Media.Brush.Parse("#FFFFB3"),
+			Text = content,
+			TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+			TextAlignment = Avalonia.Media.TextAlignment.Center,
+			VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+			HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+		}
+	};
+
+	public class SingleGlobalInstance : IDisposable
+	{
+		private System.IO.FileStream _lockFile;
+		private readonly string _appID;
+
+		public SingleGlobalInstance(string appID) => _appID = appID;
+
+		public bool TryAcquireExclusiveLock()
+		{
+			var filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), _appID);
+			try
+			{
+				_lockFile = new System.IO.FileStream(filePath, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.None);
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
+		public void Dispose() => _lockFile?.Dispose();
 	}
 }
