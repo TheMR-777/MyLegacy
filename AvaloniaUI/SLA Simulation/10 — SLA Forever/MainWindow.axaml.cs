@@ -777,45 +777,42 @@ public static class CrossUtility
 		key.SetValue(appName, exeLocation);
 
 #elif MAC
-		var plistName = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.plist";
+		var myAppName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+		var plistName = $"{myAppName}.plist";
 		var plistPath = $"{Environment.GetEnvironmentVariable("HOME")}/Library/LaunchAgents/{plistName}";
 
-		if (!System.IO.File.Exists(plistPath)) 
-		{
-			var plistContent = new System.Text.StringBuilder()
+		var plistContent = new System.Text.StringBuilder()
 				.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 				.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">")
 				.AppendLine("<plist version=\"1.0\">")
 				.AppendLine("<dict>")
 				.AppendLine("\t<key>Label</key>")
-				.AppendLine($"\t<string>{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}</string>")
+				.AppendLine($"\t<string>{myAppName}</string>")
 				.AppendLine("\t<key>ProgramArguments</key>")
 				.AppendLine("\t<array>")
-				.AppendLine($"\t\t<string>{System.Reflection.Assembly.GetExecutingAssembly().Location}</string>")
+				.AppendLine($"\t\t<string>{System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName)}</string>")
 				.AppendLine("\t</array>")
 				.AppendLine("\t<key>RunAtLoad</key>")
 				.AppendLine("\t<true/>")
 				.AppendLine("</dict>")
 				.AppendLine("</plist>").ToString();
 
-			System.IO.File.WriteAllText(plistPath, plistContent);
-		}
+		System.IO.File.WriteAllText(plistPath, plistContent);
 
 		var processStartInfo = new System.Diagnostics.ProcessStartInfo
 		{
 			FileName = "/bin/bash",
-			Arguments = $"-c \"launchctl list | grep {System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}\"",
+			Arguments = $"-c \"launchctl list | grep {myAppName}\"",
 			RedirectStandardOutput = true,
 			UseShellExecute = false,
 			CreateNoWindow = true,
 		};
 
 		var process = new System.Diagnostics.Process { StartInfo = processStartInfo };
-	
+
 		process.Start();
 		process.WaitForExit();
 
-		// Start a new process if it isn't already running
 		if (process.ExitCode != 0)
 		{
 			processStartInfo.Arguments = $"-c \"launchctl load {plistPath}\"";
