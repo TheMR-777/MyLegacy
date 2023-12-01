@@ -7,7 +7,7 @@ namespace SLA_Remake;
 
 public class App : Application
 {
-	public static readonly SingleGlobalInstance Lock = new("SLA_Remake_a93hg9-m49hf9wh-mgh39gj-ahgh74-r6hg93");
+	public static readonly SingleGlobalInstance Lock = new("h1m4a4a0h30-u3m5d1m5k2n-m0a4a0m0r1a");
 
 	public override void Initialize()
 	{

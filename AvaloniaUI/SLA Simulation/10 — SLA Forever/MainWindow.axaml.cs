@@ -1,20 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
-using Avalonia;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.ComponentModel;
-using System.Linq;
+﻿using Avalonia;
 using Avalonia.Media;
-using System.Net.Http;
-using Dapper;
-using System.Globalization;
+using Avalonia.Input;
+using Avalonia.Controls;
+using Avalonia.Threading;
+using Avalonia.Markup.Xaml;
+using Avalonia.Interactivity;
+using System;
 using System.Net;
+using System.Linq;
+using System.Net.Http;
+using System.Diagnostics;
+using System.Globalization;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Dapper;
 using ReasonType = System.Tuple<uint, bool, string>;
 
 namespace SLA_Remake;
@@ -32,10 +32,12 @@ public static class Constants
 	public const bool EnableLogOnDiscord = yes;
 	public const bool EnableLoggingOnAPI = yes;
 	public const bool EnableCacheLogging = yes;
+	public const bool EnableOriginalUser = no;
 
 	// Other Constants
 	// ---------------
 
+	public const string PlaceholderUsername = "TEST";
 	public const string ApplicationVersion = "2.0.0.01";
 	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
 }
@@ -58,7 +60,7 @@ public partial class MainWindow : Window
 	};
 	private static readonly DispatcherTimer _primeGuardTimer = new(DispatcherPriority.MaxValue)
 	{
-		Interval = TimeSpan.FromMilliseconds(1.2)
+		Interval = TimeSpan.FromMilliseconds(1.5)
 	};
 	private static DateTime _openTime = DateTime.MinValue;
 	private static TimeSpan _exitTime = TimeSpan.Zero;
@@ -341,6 +343,12 @@ public partial class MainWindow : Window
 		_closeButton.IsEnabled = !string.IsNullOrWhiteSpace(_reasonsDetail.Text) && _reasonsDetail.Text.Length > 4;
 	}
 
+	private void ReasonsDetail_Entered(object sender, KeyEventArgs e)
+	{
+		if (e.Key != Key.Enter) return;
+		LoginButton_Click(sender, e);
+	}
+
 	private void InitializeComponent()
 	{
 		AvaloniaXamlLoader.Load(this);
@@ -412,7 +420,7 @@ public static class WebAPI
 
 		var userInf = new[]
 		{
-			CrossUtility.GetCurrentUser(),
+			CrossUtility.GetCurrentUser(deepFetch: true),
 			Environment.MachineName,
 		};
 
@@ -538,7 +546,7 @@ public static class WebAPI
 		var now = DateTime.Now;
 		var req = new
 		{
-			UserName = Environment.UserName + '~' + Environment.MachineName,
+			UserName = CrossUtility.GetCurrentUser() + '~' + Environment.MachineName,
 			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
 			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
 			version = Constants.ApplicationVersion,
@@ -573,7 +581,7 @@ public static class Database
 			// ---------
 
 			UserId = "1",
-			UserName = Environment.UserName,
+			UserName = CrossUtility.GetCurrentUser(),
 			UserIp = Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP)?.ToString(),
 			LogDate = DateTime.Now.Date.ToOADate().ToString(CultureInfo.InvariantCulture),
 			UserPCName = Dns.GetHostName(),
@@ -719,9 +727,12 @@ public static class CrossUtility
 #endif
 	}
 
-	public static string GetCurrentUser()
+	public static string GetCurrentUser(bool deepFetch = false)
 	{
-		var username = Environment.UserName;
+		var username = Constants.EnableOriginalUser 
+			? Environment.UserName 
+			: Constants.PlaceholderUsername;
+		if (!deepFetch) return username;
 #if WIN
 		// Note for the Complication in-case on Windows
 		// --------------------------------------------
@@ -978,7 +989,8 @@ public static class BackwardCompatibility
 {
 	private static readonly Dictionary<uint, string> OldReasons = new()
 	{
-		// The Dictionary is being used, to maintain the order (of IDs) of the Reasons.
+		// The Dictionary is being used, to maintain the order (of ID) of the Reasons.
+		// The order is crucial, as it is by the order of IDs located in the Database.
 
 		{ 1, "Day Start" },
 		{ 2, "System Restart/Shutdown" },
