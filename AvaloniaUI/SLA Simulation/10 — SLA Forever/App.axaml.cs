@@ -61,13 +61,13 @@ public class App : Application
 	public class SingleGlobalInstance : IDisposable
 	{
 		private System.IO.FileStream _lockFile;
-		private readonly string _appID;
+		private readonly string _applicationID;
 
-		public SingleGlobalInstance(string appID) => _appID = appID;
+		public SingleGlobalInstance(string appID) => _applicationID = appID;
 
 		public bool TryAcquireExclusiveLock()
 		{
-			var filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), _appID);
+			var filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), _applicationID);
 			try
 			{
 				_lockFile = new System.IO.FileStream(filePath, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite, System.IO.FileShare.None);

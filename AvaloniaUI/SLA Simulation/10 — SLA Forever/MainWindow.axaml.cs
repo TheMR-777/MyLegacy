@@ -29,29 +29,30 @@ public static class Constants
 
 	public const bool EnableTheInternet = yes;
 	public const bool EnablePrimeGuard = yes;
+	public const bool EnableOriginalUser = no;
+	public const bool EnableNewerVersion = no;
 	public const bool EnableLogOnDiscord = yes;
 	public const bool EnableLoggingOnAPI = yes;
 	public const bool EnableCacheLogging = yes;
-	public const bool EnableOriginalUser = no;
 
 	// Other Constants
 	// ---------------
 
 	public const string PlaceholderUsername = "TEST";
-	public const string ApplicationVersion = "2.0.0.01";
+	public const string ApplicationVersion = EnableNewerVersion ? "3.0.0.00" : "2.0.0.01";
 	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
 }
 
 public partial class MainWindow : Window
 {
 	private readonly bool IsDesigning = Design.IsDesignMode;
-	private readonly TimeSpan _idleAllowed = TimeSpan.FromSeconds(10);
-	private readonly TimeSpan _postmanTime = TimeSpan.FromSeconds(15);
+	private readonly TimeSpan _idleAllowed = TimeSpan.FromMinutes(5);
+	private readonly TimeSpan _postmanTime = TimeSpan.FromSeconds(17);
 	private const string _loginPlaceholder = "Login - 00:00:00";
 
-	private readonly TextBox _reasonsDetail;
+	private readonly TextBox _reasonMore;
 	private readonly ListBox _reasonsBox;
-	private readonly Button _closeButton;
+	private readonly Button _loginButton;
 	private readonly Button _debugButton;
 
 	private static readonly DispatcherTimer _backgroundTimer = new(DispatcherPriority.MaxValue)
@@ -90,7 +91,7 @@ public partial class MainWindow : Window
 
 	public static readonly List<Key> RestrictedKeys = new()
 	{
-		// Alt, Ctrl, etc. are handled separately
+		// Alt, Ctrl, etc. are being handled separately
 		Key.Escape,     Key.Insert,     Key.Home,       Key.End,        Key.Delete,
 		Key.F1,         Key.F2,         Key.F3,         Key.F4,         Key.F5,
 		Key.F6,         Key.F7,         Key.F8,         Key.F9,         Key.F10,
@@ -116,23 +117,10 @@ public partial class MainWindow : Window
 
 		// Elemental-Bindings
 		{
-			_closeButton = this.FindControl<Button>("CloseButton")!;
+			_loginButton = this.FindControl<Button>("CloseButton")!;
 			_debugButton = this.FindControl<Button>("DebugButton")!;
 			_reasonsBox = this.FindControl<ListBox>("ReasonsBox")!;
-			_reasonsDetail = this.FindControl<TextBox>("txtReasonDetail")!;
-		}
-
-		if (OperatingSystem.IsWindows())
-		{
-
-		}
-		else if (OperatingSystem.IsMacOS())
-		{
-
-		}
-		else
-		{
-
+			_reasonMore = this.FindControl<TextBox>("ReasonDetail")!;
 		}
 
 		OtherInitializations();
@@ -199,17 +187,17 @@ public partial class MainWindow : Window
 		Closing += WindowClosing;
 
 		// Others
-		_closeButton.Click += LoginButton_Click;
+		_loginButton.Click += LoginButton_Click;
 		_reasonsBox.SelectionChanged += ReasonsBox_SelectionChanged;
-		_reasonsDetail.TextChanged += ReasonsDetail_TextChanged;
+		_reasonMore.TextChanged += ReasonsDetail_TextChanged;
 	}
 
 	private void ResetFields()
 	{
 		_reasonsBox.SelectedIndex = -1;
-		_reasonsDetail.Text = string.Empty;
-		_reasonsDetail.IsVisible = false;
-		_closeButton.IsEnabled = false;
+		_reasonMore.Text = string.Empty;
+		_reasonMore.IsVisible = false;
+		_loginButton.IsEnabled = false;
 	}
 
 	private void ForceActivate(object _ = null, object __ = null)
@@ -251,7 +239,7 @@ public partial class MainWindow : Window
 
 		_openTime = DateTime.Now;
 		_exitTime = TimeSpan.Zero;
-		_closeButton.Content = _loginPlaceholder;
+		_loginButton.Content = _loginPlaceholder;
 
 		// Timers Initialization
 		// ---------------------
@@ -259,6 +247,11 @@ public partial class MainWindow : Window
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
 		Deactivated += Constants.EnablePrimeGuard ? ForceActivate : NoOperation;
 		_primeGuardTimer.Start();
+
+		// Height Adjustment
+		// -----------------
+
+		_reasonsBox.MaxHeight = CrossUtility.Screen.High * 0.4;
 
 		if (IsDesigning) return;
 
@@ -276,7 +269,7 @@ public partial class MainWindow : Window
 
 	public static void WindowClosed(object _, EventArgs __)
 	{
-		// Disable Window Closing
+		// Reinitiating measures can be Taken here
 	}
 
 	private void PrimeGuard_Tick(object _ = null, object __ = null)
@@ -295,7 +288,7 @@ public partial class MainWindow : Window
 	private void ForegroundTimer_TickTask(object _, EventArgs __)
 	{
 		_exitTime = DateTime.Now.Subtract(_openTime);
-		_closeButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
+		_loginButton.Content = $@"Login - {_exitTime:hh\:mm\:ss}";
 		_debugButton.Content = $@"Debug - {CrossUtility.GetIdleTime():hh\:mm\:ss}";
 	}
 
@@ -317,7 +310,7 @@ public partial class MainWindow : Window
 
 		var entry = Database.LogEntry.Create(
 			login: true,
-			reasonDetail: _reasonsDetail.Text,
+			reasonDetail: _reasonMore.Text,
 			reason: (ReasonType)_reasonsBox.SelectedItem
 		);
 		Database.Save(entry);
@@ -333,14 +326,14 @@ public partial class MainWindow : Window
 	private void ReasonsBox_SelectionChanged(object _, SelectionChangedEventArgs __)
 	{
 		if (_reasonsBox.SelectedItem is not ReasonType kvp) return;
-		_reasonsDetail.IsVisible = kvp.Item2;
-		_closeButton.IsEnabled = !(kvp.Item2 && string.IsNullOrWhiteSpace(_reasonsDetail.Text));
+		_reasonMore.IsVisible = kvp.Item2;
+		_loginButton.IsEnabled = !(kvp.Item2 && string.IsNullOrWhiteSpace(_reasonMore.Text));
 	}
 
 	private void ReasonsDetail_TextChanged(object _, RoutedEventArgs __)
 	{
 		if (_reasonsBox.SelectedItem is not ReasonType) return;
-		_closeButton.IsEnabled = !string.IsNullOrWhiteSpace(_reasonsDetail.Text) && _reasonsDetail.Text.Length > 4;
+		_loginButton.IsEnabled = !string.IsNullOrWhiteSpace(_reasonMore.Text) && _reasonMore.Text.Length > 4;
 	}
 
 	private void ReasonsDetail_Entered(object sender, KeyEventArgs e)
@@ -601,7 +594,7 @@ public static class Database
 				: "1",
 			Reason = login
 				? RemoveSpecialCharacters(reason.Item2
-					? reasonDetail
+					? reasonDetail?.Trim()
 					: BackwardCompatibility.GetCompatibleReasonText(reason))
 				: null,
 			ReasonType = login
@@ -665,30 +658,19 @@ public static class Database
 	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
-	public static int Save(LogEntry entry = null)
+	public static int Save(LogEntry entry)
 	{
-		try
-		{
-			if (!Constants.EnableCacheLogging) return 0;
+		if (!Constants.EnableCacheLogging) return 0;
 
-			Connection.Open();
-			var query = QueryBuilder.GenerateTable();
-			var result = Connection.Execute(query);
+		Connection.Open();
+		var query = QueryBuilder.GenerateTable();
+		Connection.Execute(query);
 
-			if (entry != null)
-			{
-				query = QueryBuilder.Insert();
-				result = Connection.Execute(query, entry);
-			}
+		query = QueryBuilder.Insert();
+		var result = Connection.Execute(query, entry);
 
-			Connection.Close();
-			return result;
-		}
-		catch
-		{
-			WebAPI.L1_RegisterException(new Exception("Database Error"));
-			return 0;
-		}
+		Connection.Close();
+		return result;
 	}
 
 	public static List<LogEntry> GetSavedEntries()
@@ -1075,6 +1057,11 @@ public static partial class LowLevel_APIs
 		return Is64Bit ? SetWindowLongPtr64(hWnd, nIndex, dwNewLong) : new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
 	}
 
+	// Note for no-LibraryImport
+	// - - - - - - - - - - - - -
+	// Since, the EntryPoint is different for 32-bit and 64-bit,
+	// we need to create multiple overloads of the same methods.
+
 	[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
 	private static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
 
@@ -1123,8 +1110,8 @@ public static partial class LowLevel_APIs
 	[DllImport(ObjectiveCLibrary, EntryPoint = "sel_registerName")]
 	public extern static IntPtr RegisterName(string selectorName);
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "object_getIvar")]
-	public static extern IntPtr GetInstanceVariable(IntPtr handle, IntPtr ivar);
+	[LibraryImport(ObjectiveCLibrary, EntryPoint = "object_getIvar")]
+	public static partial IntPtr GetInstanceVariable(IntPtr handle, IntPtr ivar);
 
 	// Note for the Complication of 'objc_msgSend'
 	// -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
@@ -1132,43 +1119,37 @@ public static partial class LowLevel_APIs
 	// 2ndly, this method has variadic arguments, of variadic types.
 	// Thus, we need to create multiple overloads of this method.
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
-	public static extern IntPtr SendMessage(IntPtr receiver, IntPtr selector);
+	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	public static partial IntPtr SendMessage(IntPtr receiver, IntPtr selector);
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend", CharSet = CharSet.Auto)]
-	public static extern LowLevel_APIs.CoreGraphics.CGPoint SendMessage_CGPoint(IntPtr receiver, IntPtr selector);
+	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	public static partial LowLevel_APIs.CoreGraphics.CGPoint SendMessage_CGPoint(IntPtr receiver, IntPtr selector);
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
-	public static extern void SendMessage(IntPtr receiver, IntPtr selector, int arg1);
+	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	public static partial void SendMessage(IntPtr receiver, IntPtr selector, int arg1);
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend_stret", CharSet = CharSet.Auto)]
-	public static extern void SendMessage_stret_CGPoint(out LowLevel_APIs.CoreGraphics.CGPoint result, IntPtr receiver, IntPtr selector);
+	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend_stret")]
+	public static partial void SendMessage_stret_CGPoint(out LowLevel_APIs.CoreGraphics.CGPoint result, IntPtr receiver, IntPtr selector);
 
 	// Menubar Management
 	// ------------------
 
-	public static void HideMenuBar()
+	private static void SetPresentation(int x)
 	{
 		var NSAppClass = GetClass("NSApplication");
-		var sharedApplicationSelector = RegisterName("sharedApplication");
-		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
-		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
-		SendMessage(sharedApplication, setPresentationOptionsSelector, 2); // NSApplicationPresentationHideMenuBar
+		var AppSelects = RegisterName("sharedApplication");
+		var SharedApps = SendMessage(NSAppClass, AppSelects);
+		var GetOptions = RegisterName("setPresentationOptions:");
+		SendMessage(SharedApps, GetOptions, x);
 	}
 
-	public static void ShowMenuBar()
-	{
-		var NSAppClass = GetClass("NSApplication");
-		var sharedApplicationSelector = RegisterName("sharedApplication");
-		var sharedApplication = SendMessage(NSAppClass, sharedApplicationSelector);
-		var setPresentationOptionsSelector = RegisterName("setPresentationOptions:");
-		SendMessage(sharedApplication, setPresentationOptionsSelector, 0); // NSApplicationPresentationDefault
-	}
+	public static void HideMenuBar() => SetPresentation(2); // 2: NSApplicationPresentationHideMenuBar
+	public static void ShowMenuBar() => SetPresentation(0); // 0: NSApplicationPresentationDefault
 
 	// Cursor Restriction
 	// ------------------
 
-	public static class CoreGraphics
+	public static partial class CoreGraphics
 	{
 		public const int kCGEventMouseMoved = 5;
 		public const int kCGHIDEventTap = 0;
@@ -1186,26 +1167,26 @@ public static partial class LowLevel_APIs
 			}
 		}
 
-		[DllImport("ApplicationServices.framework/ApplicationServices")]
-		public static extern int CGAssociateMouseAndMouseCursorPosition(bool connected);
+		[LibraryImport("ApplicationServices.framework/ApplicationServices")]
+		public static partial int CGAssociateMouseAndMouseCursorPosition([MarshalAs(UnmanagedType.Bool)] bool connected);
 
-		[DllImport("ApplicationServices.framework/ApplicationServices")]
-		public static extern IntPtr CGEventCreateMouseEvent(IntPtr source, int mouseType, CGPoint mouseCursorPosition, int mouseButton);
+		[LibraryImport("ApplicationServices.framework/ApplicationServices")]
+		public static partial IntPtr CGEventCreateMouseEvent(IntPtr source, int mouseType, CGPoint mouseCursorPosition, int mouseButton);
 
-		[DllImport("ApplicationServices.framework/ApplicationServices")]
-		public static extern void CGEventPost(int tapLocation, IntPtr eventRef);
+		[LibraryImport("ApplicationServices.framework/ApplicationServices")]
+		public static partial void CGEventPost(int tapLocation, IntPtr eventRef);
 
-		[DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
-		public static extern int CGWarpMouseCursorPosition(CGPoint newCursorPosition);
+		[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		public static partial int CGWarpMouseCursorPosition(CGPoint newCursorPosition);
 
-		[DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
-		public static extern int CGDisplayPixelsWide(int displayId);
+		[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		public static partial int CGDisplayPixelsWide(int displayId);
 
-		[DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
-		public static extern int CGDisplayPixelsHigh(int displayId);
+		[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		public static partial int CGDisplayPixelsHigh(int displayId);
 
-		[DllImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
-		public static extern int CGMainDisplayID();
+		[LibraryImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
+		public static partial int CGMainDisplayID();
 	}
 #endif
 }

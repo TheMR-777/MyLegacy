@@ -105,7 +105,6 @@
 					SelectedIndex="0"
 					Background="{x:Null}"
 					Margin="0"
-					MaxHeight="400"
 					Padding="10">
 
 					<!-- Rounded Corners for Items -->
@@ -143,7 +142,7 @@
 		
 		<!-- Reason Detail Input -->
 		<TextBox
-			Name="txtReasonDetail"
+			Name="ReasonDetail"
 			KeyDown="ReasonsDetail_Entered"
 			Watermark="Please enter details here"
 			ToolTip.Tip="Detail is required for the selected break-type"
