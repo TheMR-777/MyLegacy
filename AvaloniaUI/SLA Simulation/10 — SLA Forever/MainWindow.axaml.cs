@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Media;
 using Avalonia.Input;
 using Avalonia.Controls;
@@ -46,6 +46,7 @@ public static class Constants
 public partial class MainWindow : Window
 {
 	private readonly bool IsDesigning = Design.IsDesignMode;
+	private const double _reasonsBoxHeight = 35.00 / 100.00;
 	private readonly TimeSpan _idleAllowed = TimeSpan.FromMinutes(5);
 	private readonly TimeSpan _postmanTime = TimeSpan.FromSeconds(17);
 	private const string _loginPlaceholder = "Login - 00:00:00";
@@ -251,7 +252,7 @@ public partial class MainWindow : Window
 		// Height Adjustment
 		// -----------------
 
-		_reasonsBox.MaxHeight = CrossUtility.Screen.High * 0.4;
+		_reasonsBox.MaxHeight = CrossUtility.Screen.High * _reasonsBoxHeight;
 
 		if (IsDesigning) return;
 
@@ -1003,9 +1004,22 @@ public static class BackwardCompatibility
 
 public static partial class LowLevel_APIs
 {
-	public static readonly bool Is64Bit = IntPtr.Size == 8;
+	private static readonly bool Is64Bit = IntPtr.Size == 8;
+
+	private static class Library
+	{
+		public const string User32 = "user32.dll";
+		public const string Kernel32 = "Kernel32.dll";
+		public const string WtsAPI32 = "Wtsapi32.dll";
+
+		public const string ObjectiveC = "/usr/lib/libobjc.dylib";
+		public const string AppKit_Lib = "/System/Library/Frameworks/AppKit.framework/AppKit";
+		public const string AppService = "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices";
+		public const string CoreGraphs = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
+	}
 
 #if WIN
+
 	// Fetching Idle Time
 	// ------------------
 
@@ -1015,7 +1029,7 @@ public static partial class LowLevel_APIs
 		public uint dwTime;
 	}
 
-	[LibraryImport("user32.dll")]
+	[LibraryImport(Library.User32)]
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool GetLastInputInfo(ref LASTINPUTINFO plii);
 
@@ -1034,14 +1048,14 @@ public static partial class LowLevel_APIs
 		// Include Other parameters here, as needed
 	}
 
-	[LibraryImport("Wtsapi32.dll", EntryPoint = "WTSQuerySessionInformationA")]
+	[LibraryImport(Library.WtsAPI32, EntryPoint = "WTSQuerySessionInformationA")]
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool WTSQuerySessionInformation(IntPtr hServer, uint sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr ppBuffer, out int pBytesReturned);
 
-	[LibraryImport("Wtsapi32.dll")]
+	[LibraryImport(Library.WtsAPI32)]
 	public static partial void WTSFreeMemory(IntPtr pointer);
 
-	[LibraryImport("Kernel32.dll")]
+	[LibraryImport(Library.Kernel32)]
 	public static partial uint WTSGetActiveConsoleSessionId();
 
 	// Altering Window Styles
@@ -1062,16 +1076,16 @@ public static partial class LowLevel_APIs
 	// Since, the EntryPoint is different for 32-bit and 64-bit,
 	// we need to create multiple overloads of the same methods.
 
-	[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+	[DllImport(Library.User32, EntryPoint = "GetWindowLong")]
 	private static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
 
-	[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+	[DllImport(Library.User32, EntryPoint = "GetWindowLongPtr")]
 	private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
-	[DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+	[DllImport(Library.User32, EntryPoint = "SetWindowLong")]
 	private static extern int SetWindowLong32(HandleRef hWnd, int nIndex, int dwNewLong);
 
-	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+	[DllImport(Library.User32, EntryPoint = "SetWindowLongPtr")]
 	private static extern IntPtr SetWindowLongPtr64(HandleRef hWnd, int nIndex, IntPtr dwNewLong);
 
 	// Cursor Clipping
@@ -1086,49 +1100,46 @@ public static partial class LowLevel_APIs
 		public int Bottom;
 	}
 
-	[LibraryImport("user32.dll")]
+	[LibraryImport(Library.User32)]
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool ClipCursor(ref RECT rect);
 
-	[LibraryImport("user32.dll")]
+	[LibraryImport(Library.User32)]
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool ClipCursor(IntPtr rect);
 
-	[LibraryImport("user32.dll")]
+	[LibraryImport(Library.User32)]
 	public static partial int GetSystemMetrics(int nIndex);
 #elif MAC
 
 	// General APIs
 	// ------------
 
-	private const string ObjectiveCLibrary = "/usr/lib/libobjc.dylib";
-	private const string AppKitLibrary = "/System/Library/Frameworks/AppKit.framework/AppKit";
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_getClass", StringMarshalling = StringMarshalling.Utf8)]
+	public static partial IntPtr GetClass([MarshalAs(UnmanagedType.LPUTF8Str)] string className);
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "objc_getClass")]
-	public extern static IntPtr GetClass(string className);
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "sel_registerName", StringMarshalling = StringMarshalling.Utf8)]
+	public static partial IntPtr RegisterName([MarshalAs(UnmanagedType.LPUTF8Str)] string selectorName);
 
-	[DllImport(ObjectiveCLibrary, EntryPoint = "sel_registerName")]
-	public extern static IntPtr RegisterName(string selectorName);
-
-	[LibraryImport(ObjectiveCLibrary, EntryPoint = "object_getIvar")]
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "object_getIvar")]
 	public static partial IntPtr GetInstanceVariable(IntPtr handle, IntPtr ivar);
 
 	// Note for the Complication of 'objc_msgSend'
 	// -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-	// 1stly, the Return Type is dependant on the Method Signature.
-	// 2ndly, this method has variadic arguments, of variadic types.
-	// Thus, we need to create multiple overloads of this method.
+	// 1stly, its Return Type is dependant on the Method Signature.
+	// 2ndly, the Method has variadic arguments, of variadic types.
+	// Hence, we need to create multiple overloads of this method.
 
-	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_msgSend")]
 	public static partial IntPtr SendMessage(IntPtr receiver, IntPtr selector);
 
-	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_msgSend")]
 	public static partial LowLevel_APIs.CoreGraphics.CGPoint SendMessage_CGPoint(IntPtr receiver, IntPtr selector);
 
-	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_msgSend")]
 	public static partial void SendMessage(IntPtr receiver, IntPtr selector, int arg1);
 
-	[LibraryImport(ObjectiveCLibrary, EntryPoint = "objc_msgSend_stret")]
+	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_msgSend_stret")]
 	public static partial void SendMessage_stret_CGPoint(out LowLevel_APIs.CoreGraphics.CGPoint result, IntPtr receiver, IntPtr selector);
 
 	// Menubar Management
@@ -1167,26 +1178,26 @@ public static partial class LowLevel_APIs
 			}
 		}
 
-		[LibraryImport("ApplicationServices.framework/ApplicationServices")]
+		[LibraryImport(Library.AppService)]
 		public static partial int CGAssociateMouseAndMouseCursorPosition([MarshalAs(UnmanagedType.Bool)] bool connected);
 
-		[LibraryImport("ApplicationServices.framework/ApplicationServices")]
+		[LibraryImport(Library.AppService)]
+		public static partial int CGMainDisplayID();
+
+		[LibraryImport(Library.AppService)]
 		public static partial IntPtr CGEventCreateMouseEvent(IntPtr source, int mouseType, CGPoint mouseCursorPosition, int mouseButton);
 
-		[LibraryImport("ApplicationServices.framework/ApplicationServices")]
+		[LibraryImport(Library.AppService)]
 		public static partial void CGEventPost(int tapLocation, IntPtr eventRef);
 
-		[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		[LibraryImport(Library.CoreGraphs)]
 		public static partial int CGWarpMouseCursorPosition(CGPoint newCursorPosition);
 
-		[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		[LibraryImport(Library.CoreGraphs)]
 		public static partial int CGDisplayPixelsWide(int displayId);
 
-		[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+		[LibraryImport(Library.CoreGraphs)]
 		public static partial int CGDisplayPixelsHigh(int displayId);
-
-		[LibraryImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
-		public static partial int CGMainDisplayID();
 	}
 #endif
 }
