@@ -1,0 +1,192 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
+		x:Class="SLA_Remake.MainWindow"
+		Icon="/Assets/sla-logo.ico"
+		
+		Width="10000"
+		Height="10000"
+		
+		WindowState="FullScreen"
+		CanResize="False"
+		ExtendClientAreaTitleBarHeightHint="0"
+		Focusable="True"
+		HorizontalAlignment="Center"
+		HorizontalContentAlignment="Center"
+		VerticalAlignment="Center"
+		VerticalContentAlignment="Center"
+		ShowInTaskbar="False"
+		Topmost="True"
+		UseLayoutRounding="True"
+		ShowActivated="True"
+		SystemDecorations="None"
+		ZIndex = "10000"
+		Background="#202020"
+		ExtendClientAreaChromeHints="NoChrome"
+		ExtendClientAreaToDecorationsHint="True"
+		Title="SLA Remake">
+	
+	<!-- Real Work -->
+	<StackPanel 
+		Spacing="15">
+
+		<!-- Bordered Container -->
+		<Border 
+			BorderThickness="2"
+			BorderBrush="#2a2a2a"
+			Padding="0,30,0,0"
+			CornerRadius="5">
+			
+			<Grid RowDefinitions="*,*,*">
+
+				<!-- Banner -->
+				<TextBlock
+					Grid.Row="0"
+					Text="Staff Logoff Activity"
+					HorizontalAlignment="Center"
+					FontFamily="{StaticResource My-SegoeUI}"
+					FontSize="25"
+					Foreground="#FFFFFFFF"/>
+
+				<!-- Beautiful Divider -->
+				<Image
+					Grid.Row="1"
+					Margin="0,30,0,0"
+					Source="/Assets/image.png"
+					Width="500"
+					VerticalAlignment="Center"
+					HorizontalAlignment="Center"/>
+
+				<!-- Guide Hint -->
+				<Border
+					Grid.Row="2"
+					Name="NewComerGuide"
+					Margin="0,30,0,-1.5"
+					CornerRadius="0,0,5,5"
+					Background="#2b2b2b"
+					Padding="15">
+
+					<TextBlock
+						HorizontalAlignment="Center"
+						FontSize="13"
+						Foreground="#FFFFFFFF"
+						Opacity="0.7"
+						Text="Your break is being Recorded. Please select your break type, and Login"/>
+
+				</Border>
+			</Grid>
+		</Border>
+		
+		<!-- Middle Stack -->
+		<Border
+			Background="#2b2b2b"
+			CornerRadius="5">
+			
+			<!-- Stack -->
+			<Grid>
+				
+				<!-- ACE Logo -->
+				<Image
+					Grid.Row="0"
+					Source="/Assets/ace-modified-nobg.png"
+					Opacity="0.041"
+					Width="365"
+					VerticalAlignment="Center"
+					HorizontalAlignment="Center"/>
+				
+				<!-- Break-Type Selection -->
+				<ListBox
+					Grid.Row="0"
+					Name="ReasonsBox"
+					ItemsSource="{Binding ReasonsAll}"
+					CornerRadius="5"
+					SelectedIndex="0"
+					Background="{x:Null}"
+					Margin="0"
+					Padding="10">
+
+					<!-- Rounded Corners for Items -->
+					<ListBox.Styles>
+						<Style Selector="ListBoxItem">
+							<Setter Property="CornerRadius" Value="5" />
+							<Setter	Property="Padding" Value="016,13" />
+						</Style>
+					</ListBox.Styles>
+
+					<!-- Item Template -->
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<StackPanel Orientation="Horizontal">
+								<TextBlock
+									Text="{Binding Item3}"
+									Margin="0,0,10,0"/>
+								<TextBlock
+									Text="•"
+									Opacity="0.07"
+									IsVisible="{Binding Item2}"/>
+							</StackPanel>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+
+					<!-- 2D View -->
+					<ListBox.ItemsPanel>
+						<ItemsPanelTemplate>
+							<UniformGrid Columns="2"/>
+						</ItemsPanelTemplate>
+					</ListBox.ItemsPanel>
+				</ListBox>
+			</Grid>
+		</Border>
+		
+		<!-- Reason Detail Input -->
+		<TextBox
+			Name="ReasonDetail"
+			KeyDown="ReasonsDetail_Entered"
+			Watermark="Please enter details here"
+			ToolTip.Tip="Detail is required for the selected break-type"
+			IsVisible="False"
+			CornerRadius="5"
+			VerticalContentAlignment="Center"
+			Padding="20,5"
+			Height="50"
+			BorderThickness="0.5"
+			BorderBrush="#3a3a3a"
+			Background="#2b2b2b"
+			Foreground="#FFFFFFFF"
+			FontFamily="Segoe UI"
+			FontSize="15"
+			MaxLength="100"
+			AcceptsTab="True"
+			MaxLines="1"
+			MaxWidth="700"
+			IsReadOnly="False" />
+		
+		<!-- Login Button -->
+		<Button 
+			Name="CloseButton" 
+			Background="#3a3a3a"
+			ToolTip.Tip="Login to continue"
+			IsEnabled="False"
+			Padding="30, 17"
+			CornerRadius="5"
+			HorizontalContentAlignment="Center"
+			HorizontalAlignment="Stretch"
+			FontFamily="{StaticResource My-CascadiaCode}" />
+		
+		<!-- Button for Debugging Purpose -->
+		<Button 
+			IsVisible="False"
+			Name="DebugButton"
+			Background="#3a3a3a"
+			ToolTip.Tip="Debugging Purpose"
+			IsEnabled="True"
+			Padding="30, 17"
+			CornerRadius="25"
+			HorizontalContentAlignment="Center"
+			HorizontalAlignment="Stretch"
+			FontFamily="{StaticResource My-CascadiaCode}" />
+		
+	</StackPanel>
+</Window>
