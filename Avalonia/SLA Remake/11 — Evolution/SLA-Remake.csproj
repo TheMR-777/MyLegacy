@@ -11,8 +11,8 @@
 	<ApplicationIcon>Assets\sla-logo.ico</ApplicationIcon>
 	<StripSymbols>true</StripSymbols>
 
-	<!-- MAC: macOS		-->
-	<!-- WIN: Windows	-->
+	<!-- MAC: mac_OSX -->
+	<!-- WIN: Windows -->
 	<DefineConstants>MAC</DefineConstants>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>

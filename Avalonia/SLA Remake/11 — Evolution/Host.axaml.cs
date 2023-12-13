@@ -39,10 +39,10 @@ public class Host : Application
 
 	private static class Grant
 	{
-		public static bool EveryAccessAcquired => DuplicateInstance && NewVersionRelease;
-
 		public static bool DuplicateInstance = !Lock.TryAcquireExclusiveLock();
 		public static bool NewVersionRelease = !WebAPI.VerifyVersion();
+
+		public static bool EveryAccessAcquired => DuplicateInstance && NewVersionRelease;
 	}
 
 	private static Avalonia.Controls.Window AlternateWindow(string title, string content) => new()

@@ -26,14 +26,14 @@ public static class Constants
 
 	private const bool yes = true;
 	private const bool no = false;
-
-	public const bool EnableTheInternet = yes;
-	public const bool EnablePrimeGuard = yes;
-	public const bool EnableOriginalUser = no;
-	public const bool EnableNewerVersion = no;
-	public const bool EnableLogOnDiscord = yes;
-	public const bool EnableLoggingOnAPI = yes;
-	public const bool EnableCacheLogging = yes;
+	
+	public const bool EnableTheInternet = yes;		// no: The Internet will not be used anywhere
+	public const bool EnablePrimeGuard = yes;		// no: The PrimeGuard won't initiate
+	public const bool EnableOriginalUser = no;		// no: The placeholder username will be used everywhere
+	public const bool EnableNewerVersion = no;		// no: The newer version will be considered as older
+	public const bool EnableLogOnDiscord = yes;		// no: The Discord Reporting will be disabled
+	public const bool EnableLoggingOnAPI = yes;		// no: The LogEntry will not be sent to the API
+	public const bool EnableCacheLogging = yes;     // no: The LogEntry will not be saved in the Database
 
 	// Other Constants
 	// ---------------
@@ -866,7 +866,7 @@ public static class CrossUtility
 
 #if WIN
 #elif MAC
-		LowLevel_APIs.HideMenuBar();
+		LowLevel_APIs.MakeAppStrict();
 #endif
 	}
 
@@ -876,7 +876,7 @@ public static class CrossUtility
 
 #if WIN
 #elif MAC
-		LowLevel_APIs.ShowMenuBar();
+		LowLevel_APIs.MakeAppNormal();
 #endif
 	}
 
@@ -1142,20 +1142,41 @@ public static partial class LowLevel_APIs
 	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_msgSend_stret")]
 	public static partial void SendMessage_stret_CGPoint(out CoreGraphics.CGPoint result, IntPtr receiver, IntPtr selector);
 
+	private static IntPtr GetApplicationReference()
+	{
+		var NSAppClass = GetClass("NSApplication");
+		var SelectApps = RegisterName("sharedApplication");
+		return SendMessage(NSAppClass, SelectApps);
+	}
+
 	// Menubar Management
 	// ------------------
 
-	private static void SetPresentation(int x)
+	private static void SetPresentation(int[] options)
 	{
-		var NSAppClass = GetClass("NSApplication");
-		var AppSelects = RegisterName("sharedApplication");
-		var SharedApps = SendMessage(NSAppClass, AppSelects);
+		var SharedApps = GetApplicationReference();
 		var GetOptions = RegisterName("setPresentationOptions:");
-		SendMessage(SharedApps, GetOptions, x);
+		SendMessage(SharedApps, GetOptions, options.Aggregate(0, (x, y) => x | (1 << y)));
 	}
 
-	public static void HideMenuBar() => SetPresentation(2); // 2: NSApplicationPresentationHideMenuBar
-	public static void ShowMenuBar() => SetPresentation(0); // 0: NSApplicationPresentationDefault
+	// Presentation Options Guide:
+	// - - - - - - - - - - - - - -
+	// 0        : Reset
+	// 1 << 00  :  x Auto-Hide Dock
+	// 1 << 01  : Hide Dock
+	// 1 << 02  :  x Auto-Hide Menu Bar
+	// 1 << 03  : Hide Menu Bar
+	// 1 << 04  : Disable Apple-Menu
+	// 1 << 05  : Disable Process-Switching
+	// 1 << 06  : Disable Force-Quit
+	// 1 << 07  : Disable Session-Termination
+	// 1 << 08  : Disable Hide-Application
+	// 1 << 09  : Disable Menubar Translucency
+	// 1 << 10  :  x Fullscreen
+	// 1 << 11  : Auto-Hide Toolbar
+
+	public static void MakeAppStrict() => SetPresentation([1, 3, 4, 5, 6, 7, 8, 9, 11]);
+	public static void MakeAppNormal() => SetPresentation([0, 6, 7, 8]);
 
 	// Cursor Restriction
 	// ------------------
