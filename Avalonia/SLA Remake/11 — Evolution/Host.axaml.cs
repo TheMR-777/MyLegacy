@@ -42,7 +42,7 @@ public class Host : Application
 		public static bool DuplicateInstance = !Lock.TryAcquireExclusiveLock();
 		public static bool NewVersionRelease = !WebAPI.VerifyVersion();
 
-		public static bool EveryAccessAcquired => DuplicateInstance && NewVersionRelease;
+		public static bool EveryAccessAcquired => !DuplicateInstance && !NewVersionRelease;
 	}
 
 	private static Avalonia.Controls.Window AlternateWindow(string title, string content) => new()

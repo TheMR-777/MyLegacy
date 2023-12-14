@@ -32,7 +32,7 @@
 	<StackPanel 
 		Spacing="15">
 
-		<!-- Bordered Container -->
+		<!-- Elegant Banner -->
 		<Border 
 			BorderThickness="2"
 			BorderBrush="#2a2a2a"
@@ -41,7 +41,7 @@
 			
 			<Grid RowDefinitions="*,*,*">
 
-				<!-- Banner -->
+				<!-- Banner Title -->
 				<TextBlock
 					Grid.Row="0"
 					Text="Staff Logoff Activity"
@@ -59,7 +59,7 @@
 					VerticalAlignment="Center"
 					HorizontalAlignment="Center"/>
 
-				<!-- Guide Hint -->
+				<!-- Guiding Description -->
 				<Border
 					Grid.Row="2"
 					Name="NewComerGuide"

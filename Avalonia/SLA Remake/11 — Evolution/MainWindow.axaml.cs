@@ -1187,16 +1187,10 @@ public static partial class LowLevel_APIs
 		public const int kCGHIDEventTap = 0;
 
 		[StructLayout(LayoutKind.Sequential)]
-		public struct CGPoint
+		public struct CGPoint(double x, double y)
 		{
-			public double x;
-			public double y;
-
-			public CGPoint(double x, double y)
-			{
-				this.x = x;
-				this.y = y;
-			}
+			public double x = x;
+			public double y = y;
 		}
 
 		[LibraryImport(Library.AppService)]
