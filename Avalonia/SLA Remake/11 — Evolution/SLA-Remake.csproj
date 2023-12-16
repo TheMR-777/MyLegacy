@@ -13,7 +13,7 @@
 
 	<!-- MAC: mac_OSX -->
 	<!-- WIN: Windows -->
-	<DefineConstants>WIN</DefineConstants>
+	<DefineConstants>MAC</DefineConstants>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 

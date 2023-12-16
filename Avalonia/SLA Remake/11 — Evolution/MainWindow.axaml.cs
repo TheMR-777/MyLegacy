@@ -793,7 +793,7 @@ public static class CrossUtility
 
 		System.IO.File.WriteAllText(plistPath, plistContent);
 
-		var processStartInfo = new ProcessStartInfo
+		var startInfo = new ProcessStartInfo
 		{
 			FileName = "/bin/bash",
 			Arguments = $"-c \"launchctl list | grep {myAppName}\"",
@@ -802,17 +802,12 @@ public static class CrossUtility
 			CreateNoWindow = true,
 		};
 
-		var process = new Process { StartInfo = processStartInfo };
+		using var process = Process.Start(startInfo);
+		process?.WaitForExit();
 
-		process.Start();
-		process.WaitForExit();
-
-		if (process.ExitCode != 0)
-		{
-			processStartInfo.Arguments = $"-c \"launchctl load {plistPath}\"";
-			process = new Process { StartInfo = processStartInfo };
-			process.Start();
-		}
+		if (process?.ExitCode == 0) return;
+		startInfo.Arguments = $"-c \"launchctl load {plistPath}\"";
+		Process.Start(startInfo);
 #endif
 	}
 
@@ -836,10 +831,9 @@ public static class CrossUtility
 			Arguments = "-c \"ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print $NF/1000000000; exit}'\""
 		};
 
-		using var process = new Process { StartInfo = startInfo };
-		process.Start();
-		var output = process.StandardOutput.ReadToEnd();
-		process.WaitForExit();
+		using var process = Process.Start(startInfo);
+		var output = process?.StandardOutput.ReadToEnd() ?? "0";
+		process?.WaitForExit();
 
 		var idleTimeSec = double.TryParse(output, out var result) ? result : 0;
 		return TimeSpan.FromSeconds(idleTimeSec);
@@ -966,6 +960,27 @@ public static class CrossUtility
 		LowLevel_APIs.CoreGraphics.CGAssociateMouseAndMouseCursorPosition(true);
 #endif
 	}
+
+	public static void CaptureAndSaveScreenshot()
+	{
+		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.png";
+		var savePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, filename);
+#if WIN
+		using var BMP = new System.Drawing.Bitmap(Screen.Wide, Screen.High);
+		using var GFX = System.Drawing.Graphics.FromImage(BMP);
+		GFX.CopyFromScreen(0, 0, 0, 0, BMP.Size);
+		BMP.Save(savePath, System.Drawing.Imaging.ImageFormat.Png);
+#elif MAC
+		var startInfo = new ProcessStartInfo
+		{
+			FileName = "/usr/sbin/screencapture",
+			UseShellExecute = false,
+			RedirectStandardOutput = true,
+			Arguments = $"-x '{savePath}'"  // -x to mute the sound
+		};
+		Process.Start(startInfo);
+#endif
+	}
 }
 
 public static class BackwardCompatibility
@@ -1020,8 +1035,7 @@ public static partial class LowLevel_APIs
 
 #if WIN
 
-	// Fetching Idle Time
-	// ------------------
+	#region Fetching Idle Time
 
 	public struct LASTINPUTINFO
 	{
@@ -1033,15 +1047,17 @@ public static partial class LowLevel_APIs
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool GetLastInputInfo(ref LASTINPUTINFO plii);
 
-	// Pin to all Desktops
-	// -------------------
+	#endregion
+
+	#region Pin to all Desktops
 
 	public const int GWL_EXSTYLE = -20;
 	public const int WS_EX_TOOLWINDOW = 0x00000080;
 
-	// Get Session's Username
-	// ----------------------
-	
+	#endregion
+
+	#region Get Session's Username
+
 	public enum WTS_INFO_CLASS
 	{
 		WTSUserName = 5,
@@ -1058,8 +1074,9 @@ public static partial class LowLevel_APIs
 	[LibraryImport(Library.Kernel32)]
 	public static partial uint WTSGetActiveConsoleSessionId();
 
-	// Altering Window Styles
-	// ----------------------
+	#endregion
+
+	#region Altering Window Styles
 
 	public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
 	{
@@ -1088,8 +1105,9 @@ public static partial class LowLevel_APIs
 	[DllImport(Library.User32, EntryPoint = "SetWindowLongPtr")]
 	private static extern IntPtr SetWindowLongPtr64(HandleRef hWnd, int nIndex, IntPtr dwNewLong);
 
-	// Cursor Clipping
-	// ---------------
+	#endregion
+
+	#region Cursor Clipping
 
 	[StructLayout(LayoutKind.Sequential)]
 	public struct RECT
@@ -1110,10 +1128,12 @@ public static partial class LowLevel_APIs
 
 	[LibraryImport(Library.User32)]
 	public static partial int GetSystemMetrics(int nIndex);
+
+	#endregion
+
 #elif MAC
 
-	// General APIs
-	// ------------
+	#region General APIs
 
 	[LibraryImport(Library.ObjectiveC, EntryPoint = "objc_getClass", StringMarshalling = StringMarshalling.Utf8)]
 	public static partial IntPtr GetClass([MarshalAs(UnmanagedType.LPUTF8Str)] string className);
@@ -1149,10 +1169,11 @@ public static partial class LowLevel_APIs
 		return SendMessage(NSAppClass, SelectApps);
 	}
 
-	// Menubar Management
-	// ------------------
+	#endregion
 
-	private static void SetPresentation(int[] options)
+	#region Menubar Management
+
+	private static void SetPresentation(IEnumerable<int> options)
 	{
 		var SharedApps = GetApplicationReference();
 		var GetOptions = RegisterName("setPresentationOptions:");
@@ -1178,8 +1199,9 @@ public static partial class LowLevel_APIs
 	public static void MakeAppStrict() => SetPresentation([1, 3, 4, 5, 6, 7, 8, 9, 11]);
 	public static void MakeAppNormal() => SetPresentation([0, 6, 7, 8]);
 
-	// Cursor Restriction
-	// ------------------
+	#endregion
+
+	#region Cursor Clipping
 
 	public static partial class CoreGraphics
 	{
@@ -1214,5 +1236,8 @@ public static partial class LowLevel_APIs
 		[LibraryImport(Library.CoreGraphs)]
 		public static partial int CGDisplayPixelsHigh(int displayId);
 	}
+
+	#endregion
+
 #endif
 }

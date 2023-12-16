@@ -144,7 +144,7 @@
 		<TextBox
 			Name="ReasonDetail"
 			KeyDown="ReasonsDetail_Entered"
-			Watermark="Please enter details here"
+			Watermark="Please enter details here (at-least 5 characters)"
 			ToolTip.Tip="Detail is required for the selected break-type"
 			IsVisible="False"
 			CornerRadius="5"
