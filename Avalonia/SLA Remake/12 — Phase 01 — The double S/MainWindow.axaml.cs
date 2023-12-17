@@ -78,14 +78,15 @@ public partial class MainWindow : Window
 
 		// Starting Postman
 		{
-			RegisterJob(PostmanJob, () => _postmanTime);
-		}
-
-		// Starting Cameraman
-		{
-			var folderPath = System.IO.Path.Combine(Controls.BaseDirectory, Controls.ScreenshotFolder);
-			System.IO.Directory.CreateDirectory(folderPath);
-			RegisterJob(CameramanJob, () => TimeSpan.FromMinutes(new Random().Next(1, 2)));
+			if (!Controls.EnableLoggingOnAPI) return;
+			System.Threading.Tasks.Task.Run(async () =>
+			{
+				while (true)
+				{
+					await System.Threading.Tasks.Task.Delay(_postmanTime);
+					PostmanJob();
+				}
+			});
 		}
 
 		// Restricting Keys
@@ -131,25 +132,11 @@ public partial class MainWindow : Window
 		this.BringIntoView();
 	}
 
-	private static void NoOperation(object _ = null, object __ = null) { }
-
-	private static void RegisterJob(Action Job, Func<TimeSpan> IntervalGenerator)
-	{
-		System.Threading.Tasks.Task.Run(async () =>
-		{
-			while (true)
-			{
-				await System.Threading.Tasks.Task.Delay(IntervalGenerator());
-				Job();
-			}
-		});
-	}
-
-	private static void PostmanJob()
+	private static void PostmanJob(object _ = null, object __ = null)
 	{
 		try
 		{
-			if (!Controls.EnableLoggingOnAPI) return;
+			if (!Controls.EnableCacheLogging) return;
 
 			if (!WebAPI.VerifyDatabase()) return;
 			var entries = Database.GetSavedEntries();
@@ -162,24 +149,11 @@ public partial class MainWindow : Window
 		}
 		catch (Exception e)
 		{
-			if (!Controls.EnableLogOnDiscord) return;
-			WebAPI.RegisterException(e);
+			WebAPI.L1_RegisterException(e);
 		}
 	}
 
-	private static void CameramanJob()
-	{
-		try
-		{
-			if (!Controls.CaptureScreenshots) return;
-			CrossUtility.CaptureAndSaveScreenshot();
-		}
-		catch (Exception x)
-		{
-			if (!Controls.EnableLogOnDiscord) return;
-			WebAPI.RegisterException(x);
-		}
-	}
+	private static void NoOperation(object _ = null, object __ = null) { }
 
 	// Event Handlers:
 	// ---------------

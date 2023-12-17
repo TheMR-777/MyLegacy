@@ -54,7 +54,7 @@ public static class WebAPI
         return res.Content.ReadAsStringAsync().Result == "1";
     }
 
-    public static void RegisterException(Exception x)
+    public static void L1_RegisterException(Exception x)
     {
         if (!Controls.EnableLogOnDiscord) return;
 

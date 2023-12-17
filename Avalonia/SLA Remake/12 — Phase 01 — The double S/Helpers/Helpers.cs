@@ -97,7 +97,7 @@ public static class CrossUtility
 				.AppendLine($"\t<string>{myAppName}</string>")
 				.AppendLine("\t<key>ProgramArguments</key>")
 				.AppendLine("\t<array>")
-				.AppendLine($"\t\t<string>{System.IO.Path.Combine(Controls.BaseDirectory, myAppName)}</string>")
+				.AppendLine($"\t\t<string>{System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName)}</string>")
 				.AppendLine("\t</array>")
 				.AppendLine("\t<key>RunAtLoad</key>")
 				.AppendLine("\t<true/>")
@@ -271,27 +271,6 @@ public static class CrossUtility
 
 		// Reassociate mouse cursor and real events.
 		LowLevel_APIs.CoreGraphics.CGAssociateMouseAndMouseCursorPosition(true);
-#endif
-	}
-
-	public static void CaptureAndSaveScreenshot(string customPath = null)
-	{
-		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd--HH-mm-ss}.png";
-		var savePath = System.IO.Path.Combine(customPath ?? Controls.BaseDirectory, Controls.ScreenshotFolder, filename);
-#if WIN
-		using var BMP = new System.Drawing.Bitmap(Screen.Wide, Screen.High);
-		using var GFX = System.Drawing.Graphics.FromImage(BMP);
-		GFX.CopyFromScreen(0, 0, 0, 0, BMP.Size);
-		BMP.Save(savePath, System.Drawing.Imaging.ImageFormat.Png);
-#elif MAC
-		var startInfo = new ProcessStartInfo
-		{
-			FileName = "/usr/sbin/screencapture",
-			UseShellExecute = false,
-			RedirectStandardOutput = true,
-			Arguments = $"-x \"{savePath}\""  // -x to mute the sound
-		};
-		Process.Start(startInfo);
 #endif
 	}
 }

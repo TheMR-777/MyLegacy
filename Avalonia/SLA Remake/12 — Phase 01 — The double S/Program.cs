@@ -18,8 +18,8 @@ internal class Program
 		}
 		catch (Exception e)
 		{
-			if (!Controls.EnableLogOnDiscord) return;
-			WebAPI.RegisterException(e);
+			if (Controls.EnableLogOnDiscord)
+				WebAPI.L1_RegisterException(e);
 		}
 	}
 
