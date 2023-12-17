@@ -8,201 +8,199 @@ namespace SLA_Remake;
 
 public static class WebAPI
 {
-    private static readonly HttpClient _webClient = new()
-    {
-        BaseAddress = new Uri("https://sla.cash-n-cash.co.uk/api/products/")
-    };
+	private static readonly HttpClient _webClient = new()
+	{
+		BaseAddress = new Uri("https://sla.cash-n-cash.co.uk/api/products/")
+	};
 
-    // The Endpoints
-    // -------------
+	// The Endpoints
+	// -------------
 
-    private const string deployedVersion = "GetCurrentSLAVersion";
-    private const string databaseConnect = "GetCheckDBConnection";
-    private const string logEntryLogging = "GetSLALogEntries";
+	private const string deployedVersion = "GetCurrentSLAVersion";
+	private const string databaseConnect = "GetCheckDBConnection";
+	private const string logEntryLogging = "GetSLALogEntries";
 
-    // Main Methods
-    // ------------
+	// Main Methods
+	// ------------
 
-    public static bool VerifyVersion()
-    {
-        if (!ConnectedToInternet()) return true;
-        var version = GetDataFrom(deployedVersion);
+	public static bool VerifyVersion()
+	{
+		if (!ConnectedToInternet()) return true;
+		var version = GetDataFrom(deployedVersion);
 
-        return new Version(Controls.ApplicationVersion).CompareTo(new Version(version)) >= 0;
-    }
+		return new Version(Controls.ApplicationVersion).CompareTo(new Version(version)) >= 0;
+	}
 
-    public static bool VerifyDatabase()
-    {
-        if (!ConnectedToInternet()) return false;
-        var status = GetDataFrom(databaseConnect);
+	public static bool VerifyDatabase()
+	{
+		if (!ConnectedToInternet()) return false;
+		var status = GetDataFrom(databaseConnect);
 
-        try
-        {
-            return bool.Parse(status);
-        }
-        catch
-        {
-            return false;
-        }
-    }
+		try
+		{
+			return bool.Parse(status);
+		}
+		catch
+		{
+			return false;
+		}
+	}
 
-    public static bool SendEntries(List<Models.LogEntry> entries)
-    {
-        if (!ConnectedToInternet()) return false;
+	public static bool SendEntries(List<Models.LogEntry> entries)
+	{
+		if (!ConnectedToInternet()) return false;
 
-        using var res = PostDataTo(logEntryLogging, Serialize(entries));
-        return res.Content.ReadAsStringAsync().Result == "1";
-    }
+		using var res = PostDataTo(logEntryLogging, Serialize(entries));
+		return res.Content.ReadAsStringAsync().Result == "1";
+	}
 
-    public static void L1_RegisterException(Exception x)
-    {
-        if (!Controls.EnableLogOnDiscord) return;
+	public static void RegisterException(Exception x)
+	{
+		if (!Controls.EnableLogOnDiscord) return;
 
-        // Fetching Footprints
-        // -------------------
+		// Fetching Footprints
+		// -------------------
 
-        var footprints = new StackTrace().GetFrames()!
-            .Select(frame => frame.GetMethod()!)
-            .Select(methodReference => $"{methodReference.DeclaringType!}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})").ToList();
+		var footprints = new StackTrace().GetFrames()!
+			.Select(frame => frame.GetMethod()!)
+			.Select(methodReference => $"{methodReference.DeclaringType!}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})").ToList();
 
-        // Fetching User Information
-        // -------------------------
+		// Fetching User Information
+		// -------------------------
 
-        var userInf = new[]
-        {
-            CrossUtility.GetCurrentUser(deepFetch: true),
-            Environment.MachineName,
-        };
+		var userInf = new[]
+		{
+			CrossUtility.GetCurrentUser(deepFetch: true),
+			Environment.MachineName,
+		};
 
-        var footers = new[]
-        {
+		var footers = new[]
+		{
 			// Application Version
 			$"v{Controls.ApplicationVersion}",
 
 			// Timestamp
 			$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
-        };
+		};
 
-        // Body Building
-        // -------------
+		// Re-Formatting Stack-Trace
+		// -------------------------
 
-        var body = new
-        {
-            username = "SLA Remake - Logger",
-            avatar_url = "https://i.imgur.com/IvgCM1R.png",
-            content = "",
-            embeds = new List<object>
-            {
-                new
-                {
-                    author = new
-                    {
-                        name = string.Join("  |  ", userInf),
-                        url = "https://www.google.com",
-                        icon_url = "https://i.imgur.com/xCvzudW.png"
-                    },
-                    color = 16007990,
-                    thumbnail = new
-                    {
-                        url = "https://i.imgur.com/IvgCM1R.jpg"
-                    },
-                    fields = new List<Dictionary<string, string>>
-                    {
-                        new()
-                        {
-                            { "name", "Method Trail" },
-                            { "value", $"```{string.Join(" < ", footprints)}```" },
-                            { "inline", "true" }
-                        },
-                        new()
-                        {
-                            { "name", "Exception/Message" },
-                            { "value", $"```{x.Message}```" },
-                        },
-                        new()
-                        {
-                            { "name", "Stack-Trace" },
-                            { "value", $"```{x.StackTrace}```" },
-                        }
-                    },
-                    footer = new
-                    {
-                        text = string.Join("   |   ", footers),
-                        icon_url = "https://i.imgur.com/0jqoy6w.jpg"
-                    }
-                }
-            }
-        };
+		var newTrace = System.Text.RegularExpressions.Regex.Replace(x.StackTrace ?? " --- ", @"^\s*at", "|", System.Text.RegularExpressions.RegexOptions.Multiline);
 
-        // Sending the Request
-        // -------------------
+		// Body Building
+		// -------------
 
-        PostDataTo(Controls.DiscordWebhookURL, System.Text.Json.JsonSerializer.Serialize(body));
-    }
+		var body = new
+		{
+			username = "SLA Remake - Logger",
+			avatar_url = "https://i.imgur.com/IvgCM1R.png",
+			embeds = new List<object>
+			{
+				new
+				{
+					author = new
+					{
+						name = string.Join("  |  ", userInf),
+						url = "https://www.google.com",
+						icon_url = "https://i.imgur.com/xCvzudW.png"
+					},
+					color = 16007990,
+					thumbnail = new
+					{
+						url = "https://i.imgur.com/IvgCM1R.jpg"
+					},
 
-    // Web-Utilities
-    // -------------
+					// The embeds are not being used
+					// due to the limited characters
+					// support, by free-tier Discord
 
-    public static bool ConnectedToInternet()
-    {
-        if (!Controls.EnableTheInternet) return false;
+					description = 
+					$"**Message of Exception** \n" +
+					$"```{x.Message}``` \n" +
+					$"**Method Trail** \n" +
+					$"```{string.Join(" < ", footprints)}``` \n" +
+					$"**Stack-Trace** \n" +
+					$"```{newTrace}```",
+					fields = new List<Dictionary<string, string>> { },
+					footer = new
+					{
+						text = string.Join("   |   ", footers),
+						icon_url = "https://i.imgur.com/0jqoy6w.jpg"
+					}
+				}
+			}
+		};
 
-        var connected = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
-        if (!connected) return false;
+		// Sending the Request
+		// -------------------
 
-        // GetIsNetworkAvailable is Fast but Unreliable for 'true'
-        // So, we go for the slower method, if that returns 'true'
+		var r = PostDataTo(Controls.DiscordWebhookURL, System.Text.Json.JsonSerializer.Serialize(body));
+	}
 
-        try
-        {
-            using var web = new HttpClient();
-            using var res = web.GetAsync("https://google.com/generate_204").Result;
-            connected = res.IsSuccessStatusCode;
-        }
-        catch
-        {
-            connected = false;
-        }
-        return connected;
-    }
+	// Web-Utilities
+	// -------------
 
-    private static string GetDataFrom(string endPoint)
-    {
-        using var res = _webClient.GetAsync(endPoint).Result;
-        return res.Content.ReadAsStringAsync().Result.Trim('"');
-    }
+	public static bool ConnectedToInternet()
+	{
+		if (!Controls.EnableTheInternet) return false;
 
-    private static HttpResponseMessage PostDataTo(string endPoint, string data)
-    {
-        using var req = new HttpRequestMessage(HttpMethod.Post, endPoint)
-        {
-            Content = new StringContent(
-                data,
-                new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
-            )
-        };
-        return _webClient.SendAsync(req).Result;
-    }
+		var connected = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
+		if (!connected) return false;
 
-    private static string Serialize(IEnumerable<Models.LogEntry> entries)
-    {
-        var entriesFormatted = entries.Select(entry =>
-        {
-            var properties = entry.GetType().GetProperties();
-            var values = properties.Select(property => property.GetValue(entry, null));
-            return string.Join("|", values);
-        });
+		// GetIsNetworkAvailable is Fast but Unreliable for 'true'
+		// So, we go for the slower method, if that returns 'true'
 
-        var now = DateTime.Now;
-        var req = new
-        {
-            UserName = CrossUtility.GetCurrentUser() + '~' + Environment.MachineName,
-            logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
-            LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
-            version = Controls.ApplicationVersion,
-            data = entriesFormatted
-        };
+		try
+		{
+			using var web = new HttpClient();
+			using var res = web.GetAsync("https://google.com/generate_204").Result;
+			connected = res.IsSuccessStatusCode;
+		}
+		catch
+		{
+			connected = false;
+		}
+		return connected;
+	}
 
-        return System.Text.Json.JsonSerializer.Serialize(req, new System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
-    }
+	private static string GetDataFrom(string endPoint)
+	{
+		using var res = _webClient.GetAsync(endPoint).Result;
+		return res.Content.ReadAsStringAsync().Result.Trim('"');
+	}
+
+	private static HttpResponseMessage PostDataTo(string endPoint, string data)
+	{
+		using var req = new HttpRequestMessage(HttpMethod.Post, endPoint)
+		{
+			Content = new StringContent(
+				data,
+				new System.Net.Http.Headers.MediaTypeHeaderValue("application/json")
+			)
+		};
+		return _webClient.SendAsync(req).Result;
+	}
+
+	private static string Serialize(IEnumerable<Models.LogEntry> entries)
+	{
+		var entriesFormatted = entries.Select(entry =>
+		{
+			var properties = entry.GetType().GetProperties();
+			var values = properties.Select(property => property.GetValue(entry, null));
+			return string.Join("|", values);
+		});
+
+		var now = DateTime.Now;
+		var req = new
+		{
+			UserName = CrossUtility.GetCurrentUser() + '~' + Environment.MachineName,
+			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
+			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
+			version = Controls.ApplicationVersion,
+			data = entriesFormatted
+		};
+
+		return System.Text.Json.JsonSerializer.Serialize(req, new System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
+	}
 }

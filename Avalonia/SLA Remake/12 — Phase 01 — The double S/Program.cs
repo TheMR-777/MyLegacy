@@ -13,13 +13,11 @@ internal class Program
 	{
 		try
 		{
-			BuildAvaloniaApp()
-				.StartWithClassicDesktopLifetime(args);
+			BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 		}
-		catch (Exception e)
+		catch (Exception x)
 		{
-			if (Controls.EnableLogOnDiscord)
-				WebAPI.L1_RegisterException(e);
+			WebAPI.RegisterException(x);
 		}
 	}
 

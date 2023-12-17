@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace SLA_Remake;
@@ -97,7 +96,7 @@ public static class CrossUtility
 				.AppendLine($"\t<string>{myAppName}</string>")
 				.AppendLine("\t<key>ProgramArguments</key>")
 				.AppendLine("\t<array>")
-				.AppendLine($"\t\t<string>{System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName)}</string>")
+				.AppendLine($"\t\t<string>{System.IO.Path.Combine(Controls.HomeFolder, myAppName)}</string>")
 				.AppendLine("\t</array>")
 				.AppendLine("\t<key>RunAtLoad</key>")
 				.AppendLine("\t<true/>")
@@ -271,6 +270,43 @@ public static class CrossUtility
 
 		// Reassociate mouse cursor and real events.
 		LowLevel_APIs.CoreGraphics.CGAssociateMouseAndMouseCursorPosition(true);
+#endif
+	}
+
+	public static void CaptureAndSaveScreenshot(string customPath = null)
+	{
+		const long imgQuality = 50L;
+		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd--HH-mm-ss}.jpg";
+		var savePath = System.IO.Path.Combine(customPath ?? Controls.HomeFolder, Controls.ScreenshotFolder);
+
+		System.IO.Directory.CreateDirectory(savePath);
+		var saveFile = System.IO.Path.Combine(savePath, filename);
+#if WIN
+		using var BMP = new System.Drawing.Bitmap(Screen.Wide, Screen.High);
+		using var GFX = System.Drawing.Graphics.FromImage(BMP);
+		GFX.CopyFromScreen(0, 0, 0, 0, BMP.Size);
+
+		var encoder = System.Drawing.Imaging.ImageCodecInfo.GetImageDecoders().First(c => c.FormatID == System.Drawing.Imaging.ImageFormat.Jpeg.Guid);
+		var e_param = new System.Drawing.Imaging.EncoderParameters { Param = { [0] = new(System.Drawing.Imaging.Encoder.Quality, imgQuality) } };
+
+		BMP.Save(saveFile, encoder, e_param);
+#elif MAC    
+		var temporary = System.IO.Path.Combine(savePath, $"{Guid.NewGuid()}.png");
+		var startInfo = new ProcessStartInfo
+		{
+			FileName = "/usr/sbin/screencapture",
+			UseShellExecute = false,
+			RedirectStandardOutput = true,
+			Arguments = $"-x \"{temporary}\""  // -x to mute the sound
+		};
+		Process.Start(startInfo)?.WaitForExit();
+	
+		startInfo.FileName = "/usr/bin/sips";
+		startInfo.Arguments = $"-s format jpeg -s formatOptions {imgQuality} \"{temporary}\" --out \"{saveFile}\"";
+		var p = Process.Start(startInfo); p?.WaitForExit();
+
+		if (p?.ExitCode != 0) return;
+		System.IO.File.Delete(temporary);
 #endif
 	}
 }

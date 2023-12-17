@@ -47,7 +47,7 @@ public static class Database
 	}
 
 	private const string DatabaseFullName = "Database.sqlite";
-	private static readonly string DatabaseLocation = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DatabaseFullName);
+	private static readonly string DatabaseLocation = System.IO.Path.Combine(Controls.HomeFolder, DatabaseFullName);
 	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
