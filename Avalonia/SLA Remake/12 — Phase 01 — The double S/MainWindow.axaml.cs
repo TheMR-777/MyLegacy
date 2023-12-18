@@ -16,7 +16,6 @@ public partial class MainWindow : Window
 	private readonly bool IsDesigning = Design.IsDesignMode;
 	private const double _reasonsBoxHeight = 35.00 / 100.00;
 	private readonly TimeSpan _idleAllowed = TimeSpan.FromMinutes(5);
-	private readonly TimeSpan _postmanTime = TimeSpan.FromSeconds(17);
 	private const string _loginPlaceholder = "Login - 00:00:00";
 
 	private readonly TextBox _reasonMore;
@@ -78,8 +77,7 @@ public partial class MainWindow : Window
 
 		// Starting Jobs
 		{
-			RegisterJob(PostmanJob, () => _postmanTime);
-			RegisterJob(CameramanJob, () => TimeSpan.FromMinutes(new Random().Next(1, 15)));
+			Jobs.JobsList.ForEach(RegisterJob);
 		}
 
 		// Restricting Keys
@@ -127,7 +125,7 @@ public partial class MainWindow : Window
 
 	private static void NoOperation(object _ = null, object __ = null) { }
 
-	private static void RegisterJob(Action Job, Func<TimeSpan> IntervalGenerator)
+	private static void RegisterJob(KeyValuePair<Action, Func<TimeSpan>> JobInfo)
 	{
 		System.Threading.Tasks.Task.Run(async () =>
 		{
@@ -135,8 +133,8 @@ public partial class MainWindow : Window
 			{
 				try
 				{
-					await System.Threading.Tasks.Task.Delay(IntervalGenerator());
-					Job();
+					await System.Threading.Tasks.Task.Delay(JobInfo.Value());
+                    JobInfo.Key();
 				}
 				catch (Exception x) 
 				{
@@ -144,26 +142,6 @@ public partial class MainWindow : Window
 				}
 			}
 		});
-	}
-
-	private static void PostmanJob()
-	{
-		if (!Controls.EnableLoggingOnAPI) return;
-
-		if (!WebAPI.VerifyDatabase()) return;
-		var entries = Database.GetSavedEntries();
-
-		if (entries.Count == 0) return;
-		var success = WebAPI.SendEntries(entries);
-
-		if (!success) return;
-		Database.Clear();
-	}
-
-	private static void CameramanJob()
-	{
-		if (!Controls.CaptureScreenshots) return;
-		CrossUtility.CaptureAndSaveScreenshot();
 	}
 
 	// Event Handlers:
