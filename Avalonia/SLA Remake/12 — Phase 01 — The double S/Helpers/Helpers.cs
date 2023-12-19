@@ -3,8 +3,19 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System;
 using System.Linq;
+using System.Net;
 
 namespace SLA_Remake;
+
+public static class Utility
+{
+	public static IPAddress GetIP() => 
+		Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP);
+
+	private static bool AllowedIP(IPAddress ip) =>
+		ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+		ip.ToString() != "127.0.0.1";
+}
 
 public static class CrossUtility
 {
@@ -275,7 +286,7 @@ public static class CrossUtility
 
 	public static void CaptureAndSaveScreenshot(string customPath = null)
 	{
-		const long imgQuality = 50L;
+		const long imgQuality = 30L;
 		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd--HH-mm-ss}.jpg";
 		var savePath = System.IO.Path.Combine(customPath ?? Controls.HomeFolder, Controls.ScreenshotFolder);
 

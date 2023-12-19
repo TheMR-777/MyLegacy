@@ -23,12 +23,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="07_jobs_separated_with_docs.rar" />
+  </ItemGroup>
+
+  <ItemGroup>
 	<PackageReference Include="Avalonia" Version="11.0.6" />
 	<PackageReference Include="Avalonia.Desktop" Version="11.0.6" />
 	<PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.6" />
 	<PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.6" />
 	<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
 	<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.6" />
+	<PackageReference Include="AWSSDK.S3" Version="3.7.304.9" />
 	<PackageReference Include="Dapper" Version="2.1.24" />
 	<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
   </ItemGroup>

@@ -5,17 +5,17 @@ using System;
 
 namespace SLA_Remake;
 
-public static class Database
+public static class Database<T>
 {
 	// This class manages all the Database related operations.
 	// It uses SQLite with Dapper for the Database operations.
 
-	public static class QueryBuilder
+	private static class QueryBuilder
 	{
 		// This class contains all the queries that are used in the Database operations.
 		// It uses System.Reflection and Dapper's Query Builder to generate the queries.
 
-		private static readonly Type _type_i = typeof(Models.LogEntry);
+		private static readonly Type _type_i = typeof(T);
 		private static readonly string _name = _type_i.Name;
 		private static readonly System.Reflection.PropertyInfo[] _properties = _type_i.GetProperties();
 		private static readonly List<string> _header = _properties.Select(p => p.Name).ToList();
@@ -51,7 +51,7 @@ public static class Database
 	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
-	public static int Save(Models.LogEntry entry)
+	public static int Save(T entry)
 	{
 		if (!Controls.EnableCacheLogging) return 0;
 
@@ -66,13 +66,13 @@ public static class Database
 		return result;
 	}
 
-	public static List<Models.LogEntry> GetSavedEntries()
+	public static List<T> GetSavedEntries()
 	{
 		if (!Controls.EnableCacheLogging) return [];
 
 		Connection.Open();
 		var query = QueryBuilder.SelectAll();
-		var result = Connection.Query<Models.LogEntry>(query).ToList();
+		var result = Connection.Query<T>(query).ToList();
 		Connection.Close();
 		return result;
 	}

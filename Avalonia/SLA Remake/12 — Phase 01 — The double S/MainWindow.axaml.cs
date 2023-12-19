@@ -38,7 +38,8 @@ public partial class MainWindow : Window
 
 	public MainWindow()
 	{
-		InitializeComponent();
+		InitializeComponent(); 
+		AWSAPI.UploadWithTransfer(@"D:\TEST_img.jpg");
 
 		// Elemental-Bindings
 		{
@@ -77,7 +78,7 @@ public partial class MainWindow : Window
 
 		// Starting Jobs
 		{
-			Jobs.JobsList.ForEach(RegisterJob);
+			Jobs.Launch();
 		}
 
 		// Restricting Keys
@@ -125,25 +126,6 @@ public partial class MainWindow : Window
 
 	private static void NoOperation(object _ = null, object __ = null) { }
 
-	private static void RegisterJob(KeyValuePair<Action, Func<TimeSpan>> JobInfo)
-	{
-		System.Threading.Tasks.Task.Run(async () =>
-		{
-			while (true)
-			{
-				try
-				{
-					await System.Threading.Tasks.Task.Delay(JobInfo.Value());
-                    JobInfo.Key();
-				}
-				catch (Exception x) 
-				{
-					WebAPI.RegisterException(x);
-				}
-			}
-		});
-	}
-
 	// Event Handlers:
 	// ---------------
 
@@ -174,7 +156,7 @@ public partial class MainWindow : Window
 		// ----------------
 
 		var entry = Models.LogEntry.Create(login: false);
-		Database.Save(entry);
+		Database<Models.LogEntry>.Save(entry);
 	}
 
 	public static void WindowClosing(object _, CancelEventArgs e)
@@ -228,7 +210,7 @@ public partial class MainWindow : Window
 			reasonDetail: _reasonMore.Text,
 			reason: (Models.Reason)_reasonsBox.SelectedItem
 		);
-		Database.Save(entry);
+		Database<Models.LogEntry>.Save(entry);
 
 		// Release Restrictions
 		// --------------------

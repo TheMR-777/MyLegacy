@@ -3,10 +3,16 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Linq;
 using System;
+using Amazon;
+using Amazon.S3;
+using Amazon.S3.Transfer;
+using Amazon.S3.Model;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace SLA_Remake;
 
-public static class WebAPI
+public static partial class WebAPI
 {
 	private static readonly HttpClient _webClient = new()
 	{
@@ -86,7 +92,7 @@ public static class WebAPI
 		// Re-Formatting Stack-Trace
 		// -------------------------
 
-		var newTrace = System.Text.RegularExpressions.Regex.Replace(x.StackTrace ?? " --- ", @"^\s*at", "|", System.Text.RegularExpressions.RegexOptions.Multiline);
+		var newTrace = StackTraceRegex().Replace(x.StackTrace ?? " --- ", "|");
 
 		// Body Building
 		// -------------
@@ -135,7 +141,7 @@ public static class WebAPI
 		// Sending the Request
 		// -------------------
 
-		var r = PostDataTo(Controls.DiscordWebhookURL, System.Text.Json.JsonSerializer.Serialize(body));
+		using var res = PostDataTo(Controls.DiscordWebhookURL, System.Text.Json.JsonSerializer.Serialize(body, options));
 	}
 
 	// Web-Utilities
@@ -184,7 +190,7 @@ public static class WebAPI
 
 	private static string Serialize(IEnumerable<Models.LogEntry> entries)
 	{
-		var entriesFormatted = entries.Select(entry =>
+		var formatted = entries.Select(entry =>
 		{
 			var properties = entry.GetType().GetProperties();
 			var values = properties.Select(property => property.GetValue(entry, null));
@@ -198,9 +204,87 @@ public static class WebAPI
 			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
 			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
 			version = Controls.ApplicationVersion,
-			data = entriesFormatted
+			data = formatted
 		};
 
-		return System.Text.Json.JsonSerializer.Serialize(req, new System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
+		return System.Text.Json.JsonSerializer.Serialize(req, options);
+	}
+
+    [GeneratedRegex(@"^\s*at", RegexOptions.Multiline)]
+    private static partial Regex StackTraceRegex();
+
+	private static readonly System.Text.Json.JsonSerializerOptions options = new() 
+	{ 
+		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull 
+	};
+}
+
+public static class AWSAPI
+{
+	private const string bucket = "sla-ucket";
+
+	private static readonly AmazonS3Client client = new(
+		"AKIARYXL6P2LMFXNG26T",
+		"p51H8gQE10c02hQfXmrqGQlwe3oS7AyhBzQfyUYG",
+		RegionEndpoint.EUWest2
+	);
+
+	public static string Upload(string filePath)
+	{
+		var fileName = System.IO.Path.GetFileName(filePath);
+		var memberFilePath = "";
+		try
+		{
+			var putRequest = new PutObjectRequest
+			{
+				BucketName = bucket,
+				Key = $"memberfilesTest/{fileName}",
+				FilePath = filePath,
+				ContentType = "image/jpeg"
+			};
+
+			var response = client.PutObjectAsync(putRequest).Result;
+
+			if (response is { HttpStatusCode: HttpStatusCode.OK })
+			{
+				memberFilePath = $"memberfilesTest/{fileName}";
+			}
+		}
+		catch (AmazonS3Exception amazonS3Exception)
+		{
+			if (amazonS3Exception.ErrorCode is "InvalidAccessKeyId" or "InvalidSecurity")
+			{
+				throw new Exception("Check the provided AWS Credentials.");
+			}
+			throw new Exception("Error occurred: " + amazonS3Exception.Message);
+		}
+		catch (Exception e)
+		{
+			throw new Exception("Unknown error occurred: " + e.Message);
+		}
+		
+		return $"https://{bucket}.s3.{client.Config.RegionEndpoint.SystemName}.amazonaws.com/{memberFilePath}";
+	}
+
+	public static string UploadWithTransfer(string imgPath)
+	{
+		//try
+		//{
+			var imgName = System.IO.Path.GetFileName(imgPath);
+			var utility = new TransferUtility(client);
+			var request = new TransferUtilityUploadRequest
+			{
+				BucketName = bucket,
+				Key = $"memberfilesTest/{imgName}",
+				FilePath = imgPath,
+				ContentType = "image/jpeg"
+			};
+			utility.Upload(request);
+			return $"https://{bucket}.s3.{client.Config.RegionEndpoint.SystemName}.amazonaws.com/memberfilesTest/{imgName}";
+		//}
+		//catch (Exception x)
+		//{
+		//	return x.Message;
+		//}
 	}
 }
