@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using System;
 using System.Linq;
 using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace SLA_Remake;
 
@@ -66,13 +68,13 @@ public static class CrossUtility
 	public static void LogOut_theUser(object sender, RoutedEventArgs e)
 	{
 #if WIN
-		var cmd = "rundll32.exe";
-		var arg = "user32.dll,LockWorkStation";
+		const string cmd = "rundll32.exe";
+		const string arg = "user32.dll,LockWorkStation";
 #elif MAC
-		var cmd = "osascript";
-		var arg = "-e 'tell application \"System Events\" to keystroke \"q\" using {command down, control down, option down}'";
+		const string cmd = "osascript";
+		const string arg = "-e 'tell application \"System Events\" to keystroke \"q\" using {command down, control down, option down}'";
 #endif
-		var startInfo = new ProcessStartInfo
+		var detail = new ProcessStartInfo
 		{
 			FileName = cmd,
 			Arguments = arg,
@@ -80,7 +82,7 @@ public static class CrossUtility
 			CreateNoWindow = true
 		};
 
-		Process.Start(startInfo);
+		Process.Start(detail);
 	}
 
 	public static void RegisterForStartup()
@@ -116,7 +118,7 @@ public static class CrossUtility
 
 		System.IO.File.WriteAllText(plistPath, plistContent);
 
-		var startInfo = new ProcessStartInfo
+		var detail = new ProcessStartInfo
 		{
 			FileName = "/bin/bash",
 			Arguments = $"-c \"launchctl list | grep {myAppName}\"",
@@ -125,12 +127,12 @@ public static class CrossUtility
 			CreateNoWindow = true,
 		};
 
-		using var process = Process.Start(startInfo);
+		using var process = Process.Start(detail);
 		process?.WaitForExit();
 
 		if (process?.ExitCode == 0) return;
-		startInfo.Arguments = $"-c \"launchctl load {plistPath}\"";
-		Process.Start(startInfo);
+		detail.Arguments = $"-c \"launchctl load {plistPath}\"";
+		Process.Start(detail);
 #endif
 	}
 
@@ -146,7 +148,7 @@ public static class CrossUtility
 
 		return TimeSpan.FromMilliseconds(Environment.TickCount - lastInPut.dwTime);
 #elif MAC
-		var startInfo = new ProcessStartInfo
+		var detail = new ProcessStartInfo
 		{
 			FileName = "/bin/bash",
 			UseShellExecute = false,
@@ -154,7 +156,7 @@ public static class CrossUtility
 			Arguments = "-c \"ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print $NF/1000000000; exit}'\""
 		};
 
-		using var process = Process.Start(startInfo);
+		using var process = Process.Start(detail);
 		var output = process?.StandardOutput.ReadToEnd() ?? "0";
 		process?.WaitForExit();
 
@@ -194,6 +196,37 @@ public static class CrossUtility
 #if WIN
 #elif MAC
 		LowLevel_APIs.MakeAppNormal();
+#endif
+	}
+
+	public static Models.CurrentAppInformation GetActiveProcessInfo()
+	{
+#if WIN
+		var handle = LowLevel_APIs.GetForegroundWindow();
+		var thread = LowLevel_APIs.GetWindowThreadProcessId(handle, out var processId);
+		var method = Process.GetProcessById((int)processId);
+		var buffer = new StringBuilder(LowLevel_APIs.MAX_TITLE_LENGTH);
+		var result = LowLevel_APIs.GetWindowText(handle, buffer, LowLevel_APIs.MAX_TITLE_LENGTH);
+
+		return new(processId, buffer.ToString(), method.ProcessName);
+#elif MAC
+		var detail = new ProcessStartInfo
+		{
+			FileName = "/bin/bash",
+			Arguments = "-c \"osascript -e 'tell application \\\"System Events\\\" to get the title of every window of (every process whose frontmost is true)' && osascript -e 'tell application \\\"System Events\\\" to unix id of (every process whose frontmost is true)'\"",
+			RedirectStandardOutput = true,
+			UseShellExecute = false
+		};
+
+		var method = Process.Start(detail);
+		method?.WaitForExit();
+
+		var output = (method?.StandardOutput.ReadToEnd().Trim() ?? string.Empty).Split('\n');
+		var banner = output.FirstOrDefault();
+		var result = uint.TryParse(output.LastOrDefault(), out var unixID);
+		var p_name = result ? Process.GetProcessById((int)unixID).ProcessName : string.Empty;
+
+		return new(unixID, banner, p_name);
 #endif
 	}
 
@@ -341,11 +374,14 @@ public static partial class LowLevel_APIs
 		public const string CoreGraphs = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
 	}
 
+    [GeneratedRegex(@"^\s*at", RegexOptions.Multiline)]
+    public static partial Regex StackTraceRegex();
+
 #if WIN
 
-	#region Fetching Idle Time
+    #region Fetching Idle Time
 
-	public struct LASTINPUTINFO
+    public struct LASTINPUTINFO
 	{
 		public uint cbSize;
 		public uint dwTime;
@@ -439,6 +475,21 @@ public static partial class LowLevel_APIs
 
 	#endregion
 
+	#region Info-Tracking
+
+	[LibraryImport("user32.dll")]
+	public static partial IntPtr GetForegroundWindow();
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+	[LibraryImport("user32.dll", SetLastError = true)]
+	public static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+	public const int MAX_TITLE_LENGTH = 256;
+
+	#endregion
+
 #elif MAC
 
 	#region General APIs
@@ -454,7 +505,7 @@ public static partial class LowLevel_APIs
 
 	// Note for the Complication of 'objc_msgSend'
 	// -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-	// 1stly, its Return Type is dependant on the Method Signature.
+	// 1stly, its Return Type is dependent on the Method Signature.
 	// 2ndly, the Method has variadic arguments, of variadic types.
 	// Hence, we need to create multiple overloads of this method.
 
@@ -481,7 +532,7 @@ public static partial class LowLevel_APIs
 
 	#region Menubar Management
 
-	private static void SetPresentation(IEnumerable<int> options)
+	private static void SetPresentation(System.Collections.Generic.IEnumerable<int> options)
 	{
 		var SharedApps = GetApplicationReference();
 		var GetOptions = RegisterName("setPresentationOptions:");

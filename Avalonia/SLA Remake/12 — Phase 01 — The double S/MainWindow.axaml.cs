@@ -38,8 +38,14 @@ public partial class MainWindow : Window
 
 	public MainWindow()
 	{
-		InitializeComponent(); 
-		AWSAPI.UploadWithTransfer(@"D:\TEST_img.jpg");
+		InitializeComponent();
+		{
+			const string file_org = @"D:\TEST_img.jpg";
+			const string file_new = @"D:\TEST_img_new.jpg";
+			var key = WebAPI.AWS.Upload(file_org);
+			var data = WebAPI.AWS.DownloadAt(key, file_new);
+		}
+		
 
 		// Elemental-Bindings
 		{
