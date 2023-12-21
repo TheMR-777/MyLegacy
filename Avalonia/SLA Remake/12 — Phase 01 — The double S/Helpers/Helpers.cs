@@ -98,7 +98,8 @@ public static class CrossUtility
 #elif MAC
 		var myAppName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 		var plistName = $"{myAppName}.plist";
-		var plistPath = $"{Environment.GetEnvironmentVariable("HOME")}/Library/LaunchAgents/{plistName}";
+		var plistPath = System.IO.Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "~", "Library", "LaunchAgents");
+		var plistFile = System.IO.Path.Combine(plistPath, plistName);
 
 		var plistContent = new System.Text.StringBuilder()
 				.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
@@ -109,16 +110,17 @@ public static class CrossUtility
 				.AppendLine($"\t<string>{myAppName}</string>")
 				.AppendLine("\t<key>ProgramArguments</key>")
 				.AppendLine("\t<array>")
-				.AppendLine($"\t\t<string>{System.IO.Path.Combine(Controls.HomeFolder, myAppName)}</string>")
+				.AppendLine($"\t\t<string>{System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName)}</string>")
 				.AppendLine("\t</array>")
 				.AppendLine("\t<key>RunAtLoad</key>")
 				.AppendLine("\t<true/>")
 				.AppendLine("</dict>")
 				.AppendLine("</plist>").ToString();
 
-		System.IO.File.WriteAllText(plistPath, plistContent);
+		System.IO.Directory.CreateDirectory(plistPath);
+		System.IO.File.WriteAllText(plistFile, plistContent);
 
-		var detail = new ProcessStartInfo
+		var startInfo = new ProcessStartInfo
 		{
 			FileName = "/bin/bash",
 			Arguments = $"-c \"launchctl list | grep {myAppName}\"",
@@ -127,12 +129,12 @@ public static class CrossUtility
 			CreateNoWindow = true,
 		};
 
-		using var process = Process.Start(detail);
+		using var process = Process.Start(startInfo);
 		process?.WaitForExit();
 
 		if (process?.ExitCode == 0) return;
-		detail.Arguments = $"-c \"launchctl load {plistPath}\"";
-		Process.Start(detail);
+		startInfo.Arguments = $"-c \"launchctl load {plistFile}\"";
+		Process.Start(startInfo);
 #endif
 	}
 
@@ -320,7 +322,7 @@ public static class CrossUtility
 	public static void CaptureAndSaveScreenshot(string customPath = null)
 	{
 		const long imgQuality = 30L;
-		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd--HH-mm-ss}.jpg";
+		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd--HH-mm-ss}{Controls.ImagesExtension}";
 		var savePath = System.IO.Path.Combine(customPath ?? Controls.HomeFolder, Controls.ScreenshotFolder);
 
 		System.IO.Directory.CreateDirectory(savePath);
@@ -374,14 +376,14 @@ public static partial class LowLevel_APIs
 		public const string CoreGraphs = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
 	}
 
-    [GeneratedRegex(@"^\s*at", RegexOptions.Multiline)]
-    public static partial Regex StackTraceRegex();
+	[GeneratedRegex(@"^\s*at", RegexOptions.Multiline)]
+	public static partial Regex StackTraceRegex();
 
 #if WIN
 
-    #region Fetching Idle Time
+	#region Fetching Idle Time
 
-    public struct LASTINPUTINFO
+	public struct LASTINPUTINFO
 	{
 		public uint cbSize;
 		public uint dwTime;

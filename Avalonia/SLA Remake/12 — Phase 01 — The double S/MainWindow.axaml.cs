@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using System;
 using System.ComponentModel;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SLA_Remake;
 
@@ -40,11 +41,11 @@ public partial class MainWindow : Window
 	{
 		InitializeComponent();
 		{
-			const string file_org = @"D:\TEST_img.jpg";
-			const string file_new = @"D:\TEST_img_new.jpg";
-			var key = WebAPI.AWS.Upload(file_org);
-			var data = WebAPI.AWS.DownloadAt(key, file_new);
-		}
+			const string local_storage = @"D:\LocalBucket";
+
+			var key = WebAPI.AWS.UploadScreenshotsFrom(local_storage);
+			var res = WebAPI.AWS.DownloadScreenshotsTo(key, local_storage);
+        }
 		
 
 		// Elemental-Bindings

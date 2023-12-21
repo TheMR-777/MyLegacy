@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Linq;
 using System.Net;
+using System.IO;
 using System;
 using Amazon;
 using Amazon.S3;
@@ -219,47 +220,97 @@ public static class WebAPI
 		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull 
 	};
 
-	// AWS S3 Utility Class
+	// AWS-S3 Utility Class
 	// --------------------
 
 	public static class AWS
 	{
-		// Format:
-		// Upload(string jpgPath): string (returns the key of the uploaded image)
-		// Key Format: <Controls.SLA_GUID_Forever>---<Path.GetFileName(filePath)>
+		private const string bucket = "sla-documents";
 
-        private const string bucket = "sla-documents";
+		private static readonly AmazonS3Client _awsClient = new(
+			"AKIARYXL6P2LDR5IYXN5",
+			"maY4buTCyWbXmqHoRvHz46jSPGtoGz6mA94x4WP+",
+			RegionEndpoint.EUWest2
+		);
 
-        private static readonly AmazonS3Client client = new(
-            "AKIARYXL6P2LDR5IYXN5",
-            "maY4buTCyWbXmqHoRvHz46jSPGtoGz6mA94x4WP+",
-            RegionEndpoint.EUWest2
-        );
+		public static List<string> UploadScreenshotsFrom(string imgFolder)
+		{
+			var keys = new List<string>();
+			var path = new DirectoryInfo(imgFolder);
+			if (!path.Exists) return keys;
+
+			var utility = new TransferUtility(_awsClient);
+			var myFiles = path.GetFiles($"*{Controls.ImagesExtension}");
+
+			myFiles.AsParallel().WithDegreeOfParallelism(4).ForAll(file =>
+			{
+				try
+				{
+					var key = $"SLA-Remake_{file.Name}";
+					utility.Upload(file.FullName, bucket, key);
+					keys.Add(key);
+					file.Delete();
+				}
+				catch
+				{
+					// Ignored at the moment, as
+					// if file upload is failed,
+					// it will be kept, and will
+					// be tried again in new Job
+				}
+			});
+
+			return keys;
+		}
+
+		public static bool DownloadScreenshotsTo(List<string> keys, string targetFolder)
+		{
+			var success = true;
+			var catalog = new DirectoryInfo(targetFolder);
+			if (!catalog.Exists) return false;
+
+			var utility = new TransferUtility(_awsClient);
+			keys.AsParallel().WithDegreeOfParallelism(4).ForAll(key =>
+			{
+				try
+				{
+					var file = $"{catalog.FullName}\\{key}";
+					utility.Download(file, bucket, key);
+				}
+				catch
+				{
+					success = false;
+				}
+			});
+
+			return success;
+		}
 
 		public static string Upload(string filePath)
 		{
-            var key = $"{Controls.SLA_GUID_Forever}---{System.IO.Path.GetFileName(filePath)}";
-            var req = new PutObjectRequest
+			var key = $"SLA-Remake_{System.IO.Path.GetFileName(filePath)}";
+			var req = new PutObjectRequest
 			{
-                BucketName = bucket,
-                Key = key,
-                FilePath = filePath,
-                ContentType = "image/jpeg"
-            };
-            var res = client.PutObjectAsync(req).Result;
-			return key;
-        }
+				BucketName = bucket,
+				Key = key,
+				FilePath = filePath,
+				ContentType = "image/jpeg"
+			};
+
+			var res = _awsClient.PutObjectAsync(req).Result;
+			return res.HttpStatusCode == HttpStatusCode.OK ? key : string.Empty;
+		}
 
 		public static bool DownloadAt(string key, string imgPath)
 		{
 			var req = new GetObjectRequest
 			{
-                BucketName = bucket,
-                Key = key
-            };
-			var res = client.GetObjectAsync(req).Result;
+				BucketName = bucket,
+				Key = key
+			};
+			var res = _awsClient.GetObjectAsync(req).Result;
 			res.WriteResponseStreamToFileAsync(imgPath, false, default).Wait();
 			return true;
 		}
-    }
+	}
 }
