@@ -100,7 +100,7 @@ public static class WebAPI
 
 		var body = new
 		{
-			username = "SLA Remake - Logger",
+			username = Controls.MyName + " - Logger",
 			avatar_url = "https://i.imgur.com/IvgCM1R.png",
 			embeds = new List<object>
 			{
@@ -246,7 +246,7 @@ public static class WebAPI
 			{
 				try
 				{
-					var key = $"SLA-Remake_{file.Name}";
+					var key = Controls.MyName + '_' + file.Name;
 					utility.Upload(file.FullName, bucket, key);
 					keys.Add(key);
 					file.Delete();
@@ -288,7 +288,7 @@ public static class WebAPI
 
 		public static string Upload(string filePath)
 		{
-			var key = $"SLA-Remake_{System.IO.Path.GetFileName(filePath)}";
+			var key = Controls.MyName + '_' + Path.GetFileName(filePath);
 			var req = new PutObjectRequest
 			{
 				BucketName = bucket,

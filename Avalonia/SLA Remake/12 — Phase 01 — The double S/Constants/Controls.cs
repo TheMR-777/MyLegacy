@@ -24,6 +24,7 @@ public static class Controls
 	public const string PlaceholderUsername = "TEST";
 	public const string ApplicationVersion = EnableNewerVersion ? "3.0.0.00" : "2.0.0.01";
 	public const string DiscordWebhookURL = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
+	public static readonly string MyName = System.AppDomain.CurrentDomain.FriendlyName;
 	public const string DatabaseFullName = "Database.sqlite";
 	public const string ScreenshotFolder = "Screenshots";
 	public const string ImagesExtension = ".jpg";

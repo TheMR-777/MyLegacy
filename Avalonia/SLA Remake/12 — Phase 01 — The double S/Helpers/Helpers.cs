@@ -4,8 +4,8 @@ using System.Runtime.InteropServices;
 using System;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace SLA_Remake;
 
@@ -96,26 +96,26 @@ public static class CrossUtility
 		key.SetValue(appName, exeLocation);
 
 #elif MAC
-		var myAppName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-		var plistName = $"{myAppName}.plist";
+		var myAppName = Controls.MyName;
+		var plistName = myAppName + ".plist";
 		var plistPath = System.IO.Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "~", "Library", "LaunchAgents");
 		var plistFile = System.IO.Path.Combine(plistPath, plistName);
 
-		var plistContent = new System.Text.StringBuilder()
-				.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-				.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">")
-				.AppendLine("<plist version=\"1.0\">")
-				.AppendLine("<dict>")
-				.AppendLine("\t<key>Label</key>")
-				.AppendLine($"\t<string>{myAppName}</string>")
-				.AppendLine("\t<key>ProgramArguments</key>")
-				.AppendLine("\t<array>")
-				.AppendLine($"\t\t<string>{System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName)}</string>")
-				.AppendLine("\t</array>")
-				.AppendLine("\t<key>RunAtLoad</key>")
-				.AppendLine("\t<true/>")
-				.AppendLine("</dict>")
-				.AppendLine("</plist>").ToString();
+		var plistContent = new XDocument(
+			new XDeclaration("1.0", "UTF-8", null),
+			new XDocumentType("plist", "-//Apple//DTD PLIST 1.0//EN", "http://www.apple.com/DTDs/PropertyList-1.0.dtd", null),
+			new XElement("plist", new XAttribute("version", "1.0"),
+				new XElement("dict",
+					new XElement("key", "Label"),
+					new XElement("string", myAppName),
+					new XElement("key", "ProgramArguments"),
+					new XElement("array",
+						new XElement("string", System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName))),
+					new XElement("key", "RunAtLoad"),
+					new XElement("true")
+				)
+			)
+		).ToString();
 
 		System.IO.Directory.CreateDirectory(plistPath);
 		System.IO.File.WriteAllText(plistFile, plistContent);

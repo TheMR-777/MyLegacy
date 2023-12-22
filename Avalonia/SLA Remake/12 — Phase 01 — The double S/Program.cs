@@ -18,6 +18,9 @@ internal class Program
 		catch (Exception x)
 		{
 			WebAPI.RegisterException(x);
+
+			System.Threading.Tasks.Task.Delay(TimeSpan.FromMinutes(5)).Wait();
+			System.Diagnostics.Process.Start(Environment.ProcessPath!);
 		}
 	}
 

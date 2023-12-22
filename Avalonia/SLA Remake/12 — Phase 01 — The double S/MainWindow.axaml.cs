@@ -42,7 +42,7 @@ public partial class MainWindow : Window
 		InitializeComponent();
 		{
 			const string local_storage = @"D:\LocalBucket";
-
+			throw new Exception("Testing Restarting of " + Controls.MyName);
 			var key = WebAPI.AWS.UploadScreenshotsFrom(local_storage);
 			var res = WebAPI.AWS.DownloadScreenshotsTo(key, local_storage);
         }
