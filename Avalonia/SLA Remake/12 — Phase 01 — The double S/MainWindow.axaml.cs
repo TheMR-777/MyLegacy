@@ -8,7 +8,6 @@ using Avalonia.Interactivity;
 using System;
 using System.ComponentModel;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SLA_Remake;
 
@@ -40,13 +39,6 @@ public partial class MainWindow : Window
 	public MainWindow()
 	{
 		InitializeComponent();
-		{
-			const string local_storage = @"D:\LocalBucket";
-			throw new Exception("Testing Restarting of " + Controls.MyName);
-			var key = WebAPI.AWS.UploadScreenshotsFrom(local_storage);
-			var res = WebAPI.AWS.DownloadScreenshotsTo(key, local_storage);
-        }
-		
 
 		// Elemental-Bindings
 		{

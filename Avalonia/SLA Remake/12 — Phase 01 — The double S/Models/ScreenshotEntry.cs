@@ -15,13 +15,13 @@ public class ScreenshotEntry
 	public string LogTime { get; set; }
 	public string AgentVersion { get; set; }
 
-	public static ScreenshotEntry Create(string awsRef) => new()
+	public static ScreenshotEntry Create(string awsRef, string currentProcess = null) => new()
 	{
 		Username = CrossUtility.GetCurrentUser(),
-		UserIP = Utility.GetIP().ToString(),
+		UserIP = Utility.IP.ToString(),
 		UserPCName = Environment.MachineName,
 		ScreenshotAWS = awsRef,
-		CurrentApp = "XYZ",
+		CurrentApp = currentProcess ?? CrossUtility.GetActiveProcessInfo().ProcessName,
 		LogTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
 		AgentVersion = Controls.ApplicationVersion
 	};

@@ -19,7 +19,7 @@ internal class Program
 		{
 			WebAPI.RegisterException(x);
 
-			System.Threading.Tasks.Task.Delay(TimeSpan.FromMinutes(5)).Wait();
+			System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(15)).Wait();
 			System.Diagnostics.Process.Start(Environment.ProcessPath!);
 		}
 	}

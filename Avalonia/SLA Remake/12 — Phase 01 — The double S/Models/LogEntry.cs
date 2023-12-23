@@ -29,7 +29,7 @@ public class LogEntry
 
 		UserId = "1",
 		UserName = CrossUtility.GetCurrentUser(),
-		UserIp = Utility.GetIP().ToString(),
+		UserIp = Utility.IP.ToString(),
 		LogDate = DateTime.Now.Date.ToOADate().ToString(CultureInfo.InvariantCulture),
 		UserPCName = Dns.GetHostName(),
 		UserDisplayName = "USER",

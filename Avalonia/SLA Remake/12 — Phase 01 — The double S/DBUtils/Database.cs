@@ -21,36 +21,19 @@ public static class Database<T>
 		private static readonly List<string> _header = _properties.Select(p => p.Name).ToList();
 		private static readonly List<string> _values = _properties.Select(p => $"@{p.Name}").ToList();
 
-		public static string GenerateTable()
-		{
-			var query = $"CREATE TABLE IF NOT EXISTS {_name} ({string.Join(", ", _header)});";
-			return query;
-		}
-
-		public static string Insert()
-		{
-			var query = $"INSERT INTO {_name} ({string.Join(", ", _header)}) VALUES ({string.Join(", ", _values)});";
-			return query;
-		}
-
-		public static string SelectAll()
-		{
-			var query = $"SELECT * FROM {_name};";
-			return query;
-		}
-
-		public static string ClearTable()
-		{
-			var query = $"DELETE FROM {_name};";
-			return query;
-		}
+		public static string GenerateTable() => $"CREATE TABLE IF NOT EXISTS {_name} ({string.Join(", ", _header)});";
+		public static string InsertEntity() => $"INSERT INTO {_name} ({string.Join(", ", _header)}) VALUES ({string.Join(", ", _values)});";
+		public static string RetrieveAll() => $"SELECT * FROM {_name};";
+		public static string ClearTable() => $"DELETE FROM {_name};";
 	}
 
 	private static readonly string DatabaseLocation = System.IO.Path.Combine(Controls.HomeFolder, Controls.DatabaseFullName);
 	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
-	public static int Save(T entry)
+	public static int Save(T entry) => Save([entry]);
+
+	public static int Save(List<T> entry)
 	{
 		if (!Controls.EnableCacheLogging) return 0;
 
@@ -58,7 +41,7 @@ public static class Database<T>
 		var query = QueryBuilder.GenerateTable();
 		Connection.Execute(query);
 
-		query = QueryBuilder.Insert();
+		query = QueryBuilder.InsertEntity();
 		var result = Connection.Execute(query, entry);
 
 		Connection.Close();
@@ -70,7 +53,7 @@ public static class Database<T>
 		if (!Controls.EnableCacheLogging) return [];
 
 		Connection.Open();
-		var query = QueryBuilder.SelectAll();
+		var query = QueryBuilder.RetrieveAll();
 		var result = Connection.Query<T>(query).ToList();
 		Connection.Close();
 		return result;

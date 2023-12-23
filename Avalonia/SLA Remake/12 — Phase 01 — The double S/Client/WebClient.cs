@@ -1,15 +1,9 @@
-﻿using System.Text.RegularExpressions;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Linq;
-using System.Net;
 using System.IO;
 using System;
-using Amazon;
-using Amazon.S3;
-using Amazon.S3.Model;
-using Amazon.S3.Transfer;
 
 namespace SLA_Remake;
 
@@ -225,39 +219,33 @@ public static class WebAPI
 
 	public static class AWS
 	{
-		private const string bucket = "sla-documents";
-
-		private static readonly AmazonS3Client _awsClient = new(
+		private const string _bucket = "sla-documents";
+		private static readonly string _prefix = $"{Controls.MyName}/{CrossUtility.GetCurrentUser()}@{Environment.MachineName}/";
+		private static readonly Amazon.S3.Transfer.TransferUtility _awsClient = new(
 			"AKIARYXL6P2LDR5IYXN5",
 			"maY4buTCyWbXmqHoRvHz46jSPGtoGz6mA94x4WP+",
-			RegionEndpoint.EUWest2
+			Amazon.RegionEndpoint.EUWest2
 		);
+
+		// Wrapper Functions
+		// -----------------
+		// The following methods are the
+		// utility methods of this class
+		// which execute the key-methods
+		// in parallel & thread-safe way
 
 		public static List<string> UploadScreenshotsFrom(string imgFolder)
 		{
 			var keys = new List<string>();
 			var path = new DirectoryInfo(imgFolder);
-			if (!path.Exists) return keys;
+			if (!path.Exists) return [];
 
-			var utility = new TransferUtility(_awsClient);
-			var myFiles = path.GetFiles($"*{Controls.ImagesExtension}");
-
-			myFiles.AsParallel().WithDegreeOfParallelism(4).ForAll(file =>
+			path.GetFiles('*' + Controls.ImagesExtension).AsParallel().WithDegreeOfParallelism(Controls.MaxTransmissionThreads).ForAll(file =>
 			{
-				try
-				{
-					var key = Controls.MyName + '_' + file.Name;
-					utility.Upload(file.FullName, bucket, key);
-					keys.Add(key);
-					file.Delete();
-				}
-				catch
-				{
-					// Ignored at the moment, as
-					// if file upload is failed,
-					// it will be kept, and will
-					// be tried again in new Job
-				}
+				var key = Upload(file.FullName);
+				if (string.IsNullOrEmpty(key)) return;
+				keys.Add(key);
+				file.Delete();
 			});
 
 			return keys;
@@ -269,48 +257,44 @@ public static class WebAPI
 			var catalog = new DirectoryInfo(targetFolder);
 			if (!catalog.Exists) return false;
 
-			var utility = new TransferUtility(_awsClient);
-			keys.AsParallel().WithDegreeOfParallelism(4).ForAll(key =>
-			{
-				try
-				{
-					var file = $"{catalog.FullName}\\{key}";
-					utility.Download(file, bucket, key);
-				}
-				catch
-				{
-					success = false;
-				}
-			});
+			keys.AsParallel().WithDegreeOfParallelism(Controls.MaxTransmissionThreads).ForAll(key =>
+				success &= DownloadAt(key, Path.Combine(catalog.FullName, key))
+			);
 
 			return success;
 		}
 
+		// Main Functions
+		// --------------
+		// The following methods are
+		// key-methods of this class
+		// containing all the logics
+
 		public static string Upload(string filePath)
 		{
-			var key = Controls.MyName + '_' + Path.GetFileName(filePath);
-			var req = new PutObjectRequest
+			try
 			{
-				BucketName = bucket,
-				Key = key,
-				FilePath = filePath,
-				ContentType = "image/jpeg"
-			};
-
-			var res = _awsClient.PutObjectAsync(req).Result;
-			return res.HttpStatusCode == HttpStatusCode.OK ? key : string.Empty;
+				var key = _prefix + Path.GetFileName(filePath);
+				_awsClient.Upload(filePath, _bucket, key);
+				return key;
+			}
+			catch
+			{
+				return string.Empty;
+			}
 		}
 
-		public static bool DownloadAt(string key, string imgPath)
+		public static bool DownloadAt(string key, string filePath)
 		{
-			var req = new GetObjectRequest
+			try
 			{
-				BucketName = bucket,
-				Key = key
-			};
-			var res = _awsClient.GetObjectAsync(req).Result;
-			res.WriteResponseStreamToFileAsync(imgPath, false, default).Wait();
-			return true;
+				_awsClient.Download(filePath, _bucket, key);
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
 		}
 	}
 }

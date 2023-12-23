@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SLA_Remake.Models;
+using System;
 using System.Collections.Generic;
 
 namespace SLA_Remake;
@@ -8,10 +9,11 @@ public static class Jobs
 	// This class contains all the required jobs
 	// that are to be executed in the background
 
-	private static readonly List<KeyValuePair<Action, Func<TimeSpan>>> Workflows =
+	private static readonly Random _random = new();
+	private static readonly List<Tuple<Action, Func<TimeSpan>>> Workflows =
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
-		new(CameramanJob, () => TimeSpan.FromMinutes(new Random().Next(1, 15))),
+		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(1, 15))),
 	];
 
 	// Jobs
@@ -22,19 +24,22 @@ public static class Jobs
 		if (!Controls.EnableLoggingOnAPI) return;
 
 		if (!WebAPI.VerifyDatabase()) return;
-		var entries = Database<Models.LogEntry>.GetSavedEntries();
+		var log_entries = Database<LogEntry>.GetSavedEntries();
 
-		if (entries.Count == 0) return;
-		var success = WebAPI.SendEntries(entries);
+		if (log_entries.Count == 0) return;
+		var success = WebAPI.SendEntries(log_entries);
 
 		if (!success) return;
-		Database<Models.LogEntry>.Clear();
+		Database<LogEntry>.Clear();
 	}
 
 	private static void CameramanJob()
 	{
 		if (!Controls.CaptureScreenshots) return;
 		CrossUtility.CaptureAndSaveScreenshot();
+
+		if (!WebAPI.ConnectedToInternet()) return;
+		Utility.CreateEntriesFromSavedScreenshots();
 	}
 
 	// Utilities
@@ -42,7 +47,7 @@ public static class Jobs
 
 	public static void Launch() => Workflows.ForEach(RegisterJob);
 
-	private static void RegisterJob(KeyValuePair<Action, Func<TimeSpan>> JobInfo)
+	private static void RegisterJob(Tuple<Action, Func<TimeSpan>> JobInfo)
 	{
 		var (Job, GetInterval) = JobInfo;
 		System.Threading.Tasks.Task.Run(async () =>

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -11,7 +12,23 @@ namespace SLA_Remake;
 
 public static class Utility
 {
-	public static IPAddress GetIP() => 
+	public static void CreateEntriesFromSavedScreenshots()
+	{
+		var imgs = Path.Combine(Controls.HomeFolder, Controls.ScreenshotFolder);
+		var keys = WebAPI.AWS.UploadScreenshotsFrom(imgs);
+		if (keys.Count == 0) return;
+
+		var logs = keys.Select(key =>
+		{
+			var l = key.LastIndexOf(Controls.ImagesDelimiter, StringComparison.Ordinal) + Controls.ImagesDelimiter.Length;
+			var r = key.LastIndexOf('.');
+			return Models.ScreenshotEntry.Create(key, key[l..r]);
+		}).ToList();
+
+		var res = Database<Models.ScreenshotEntry>.Save(logs);
+	}
+
+	public static IPAddress IP => 
 		Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP);
 
 	private static bool AllowedIP(IPAddress ip) =>
@@ -92,14 +109,14 @@ public static class CrossUtility
 		var processModule = Process.GetCurrentProcess().MainModule;
 		if (processModule == null) return;
 		var exeLocation = processModule.FileName;
-		var appName = System.IO.Path.GetFileNameWithoutExtension(exeLocation);
+		var appName = Path.GetFileNameWithoutExtension(exeLocation);
 		key.SetValue(appName, exeLocation);
 
 #elif MAC
 		var myAppName = Controls.MyName;
 		var plistName = myAppName + ".plist";
-		var plistPath = System.IO.Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "~", "Library", "LaunchAgents");
-		var plistFile = System.IO.Path.Combine(plistPath, plistName);
+		var plistPath = Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "~", "Library", "LaunchAgents");
+		var plistFile = Path.Combine(plistPath, plistName);
 
 		var plistContent = new XDocument(
 			new XDeclaration("1.0", "UTF-8", null),
@@ -110,15 +127,15 @@ public static class CrossUtility
 					new XElement("string", myAppName),
 					new XElement("key", "ProgramArguments"),
 					new XElement("array",
-						new XElement("string", System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName))),
+						new XElement("string", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName))),
 					new XElement("key", "RunAtLoad"),
 					new XElement("true")
 				)
 			)
 		).ToString();
 
-		System.IO.Directory.CreateDirectory(plistPath);
-		System.IO.File.WriteAllText(plistFile, plistContent);
+		Directory.CreateDirectory(plistPath);
+		File.WriteAllText(plistFile, plistContent);
 
 		var startInfo = new ProcessStartInfo
 		{
@@ -207,7 +224,7 @@ public static class CrossUtility
 		var handle = LowLevel_APIs.GetForegroundWindow();
 		var thread = LowLevel_APIs.GetWindowThreadProcessId(handle, out var processId);
 		var method = Process.GetProcessById((int)processId);
-		var buffer = new StringBuilder(LowLevel_APIs.MAX_TITLE_LENGTH);
+		var buffer = new System.Text.StringBuilder(LowLevel_APIs.MAX_TITLE_LENGTH);
 		var result = LowLevel_APIs.GetWindowText(handle, buffer, LowLevel_APIs.MAX_TITLE_LENGTH);
 
 		return new(processId, buffer.ToString(), method.ProcessName);
@@ -319,14 +336,14 @@ public static class CrossUtility
 #endif
 	}
 
-	public static void CaptureAndSaveScreenshot(string customPath = null)
+	public static void CaptureAndSaveScreenshot()
 	{
 		const long imgQuality = 30L;
-		var filename = $"screenshot-{DateTime.Now:yyyy-MM-dd--HH-mm-ss}{Controls.ImagesExtension}";
-		var savePath = System.IO.Path.Combine(customPath ?? Controls.HomeFolder, Controls.ScreenshotFolder);
+		var filename = DateTime.Now.ToString("yyyy-MM-dd--HH-mm-ss") + Controls.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Controls.ImagesExtension;
+		var savePath = Path.Combine(Controls.HomeFolder, Controls.ScreenshotFolder);
 
-		System.IO.Directory.CreateDirectory(savePath);
-		var saveFile = System.IO.Path.Combine(savePath, filename);
+		Directory.CreateDirectory(savePath);
+		var saveFile = Path.Combine(savePath, filename);
 #if WIN
 		using var BMP = new System.Drawing.Bitmap(Screen.Wide, Screen.High);
 		using var GFX = System.Drawing.Graphics.FromImage(BMP);
@@ -336,8 +353,8 @@ public static class CrossUtility
 		var e_param = new System.Drawing.Imaging.EncoderParameters { Param = { [0] = new(System.Drawing.Imaging.Encoder.Quality, imgQuality) } };
 
 		BMP.Save(saveFile, encoder, e_param);
-#elif MAC    
-		var temporary = System.IO.Path.Combine(savePath, $"{Guid.NewGuid()}.png");
+#elif MAC
+		var temporary = Path.Combine(savePath, $"{Guid.NewGuid()}.png");
 		var startInfo = new ProcessStartInfo
 		{
 			FileName = "/usr/sbin/screencapture",
@@ -352,7 +369,7 @@ public static class CrossUtility
 		var p = Process.Start(startInfo); p?.WaitForExit();
 
 		if (p?.ExitCode != 0) return;
-		System.IO.File.Delete(temporary);
+		File.Delete(temporary);
 #endif
 	}
 }
@@ -483,7 +500,7 @@ public static partial class LowLevel_APIs
 	public static partial IntPtr GetForegroundWindow();
 
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
-	public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+	public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 
 	[LibraryImport("user32.dll", SetLastError = true)]
 	public static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
