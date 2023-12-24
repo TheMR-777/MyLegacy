@@ -13,6 +13,7 @@ internal class Program
 	{
 		try
 		{
+			System.Net.ServicePointManager.ServerCertificateValidationCallback += (_, _, _, _) => true;
 			BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 		}
 		catch (Exception x)

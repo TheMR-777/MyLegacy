@@ -1,49 +1,43 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-	<Title>SLA Remake</Title>
-	<Description>SLA-Remake is a reliable, accountable, and minimal Break-Management tool, developed by the Software Department of ACE Group of Companies, specifically by Muhammad Ammar (ACE-619)</Description>
-	<OutputType>WinExe</OutputType>
-	<TargetFramework>net8.0</TargetFramework>
-	<Nullable>disable</Nullable>
-	<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-	<ApplicationManifest>app.manifest</ApplicationManifest>
-	<AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
-	<ApplicationIcon>Assets\sla-logo.ico</ApplicationIcon>
-	<StripSymbols>true</StripSymbols>
-	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-	<!-- MAC: mac_OSX -->
-	<!-- WIN: Windows -->
-	<DefineConstants>WIN</DefineConstants>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<Title>SLA Remake</Title>
+		<Description>SLA-Remake is a reliable, accountable, and minimal Break-Management tool, developed by the Software Department of ACE Group of Companies, specifically by Muhammad Ammar (ACE-619)</Description>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>disable</Nullable>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+		<ApplicationIcon>Assets\sla-logo.ico</ApplicationIcon>
+		<StripSymbols>true</StripSymbols>
+		<!-- MAC: mac_OSX -->
+		<!-- WIN: Windows -->
+		<DefineConstants>WIN</DefineConstants>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-  <ItemGroup>
-	<AvaloniaResource Include="Assets\**" />
-  </ItemGroup>
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\**" />
+	</ItemGroup>
 
-  <ItemGroup>
-	<None Remove="07_jobs_separated_with_docs.rar" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.0.6" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.6" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.6" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.6" />
+		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.6" />
+		<PackageReference Include="AWSSDK.S3" Version="3.7.305.1" />
+		<PackageReference Include="Dapper" Version="2.1.24" />
+		<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
+	</ItemGroup>
 
-  <ItemGroup>
-	<PackageReference Include="Avalonia" Version="11.0.6" />
-	<PackageReference Include="Avalonia.Desktop" Version="11.0.6" />
-	<PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.6" />
-	<PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.6" />
-	<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-	<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.6" />
-	<PackageReference Include="AWSSDK.S3" Version="3.7.305.1" />
-	<PackageReference Include="Dapper" Version="2.1.24" />
-	<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
-  </ItemGroup>
-
-  <ItemGroup>
-	<Compile Update="Host.axaml.cs">
-	  <DependentUpon>Host.axaml</DependentUpon>
-	</Compile>
-	<Compile Update="MainWindow.axaml.cs">
-	  <DependentUpon>MainWindow.axaml</DependentUpon>
-	</Compile>
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Update="Host.axaml.cs">
+			<DependentUpon>Host.axaml</DependentUpon>
+		</Compile>
+		<Compile Update="MainWindow.axaml.cs">
+			<DependentUpon>MainWindow.axaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
 </Project>

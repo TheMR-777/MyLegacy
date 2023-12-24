@@ -59,7 +59,7 @@ public partial class MainWindow : Window
 		// Timer Initialization
 		{
 			_backgroundTimer.Tick += BackgroundTimer_Tick;
-			_primeGuardTimer.Tick += !Controls.EnablePrimeGuard || IsDesigning ? NoOperation : PrimeGuard_Tick;
+			_primeGuardTimer.Tick += !Configuration.EnablePrimeGuard || IsDesigning ? NoOperation : PrimeGuard_Tick;
 			_backgroundTimer.Start();
 		}
 
@@ -141,7 +141,7 @@ public partial class MainWindow : Window
 		// ---------------------
 
 		_backgroundTimer.Tick += ForegroundTimer_TickTask;
-		Deactivated += Controls.EnablePrimeGuard ? ForceActivate : NoOperation;
+		Deactivated += Configuration.EnablePrimeGuard ? ForceActivate : NoOperation;
 		_primeGuardTimer.Start();
 
 		// Height Adjustment

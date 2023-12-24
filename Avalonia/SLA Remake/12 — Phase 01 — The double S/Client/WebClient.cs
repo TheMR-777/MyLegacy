@@ -9,6 +9,7 @@ namespace SLA_Remake;
 
 public static class WebAPI
 {
+	private const string DiscordWebhookAddressSLA = "https://discord.com/api/webhooks/1172483585698185226/M1oWUKwwl-snXr6sHTeAQoKYQxmg4JVg-tRKkqUZ1gSuYXwsV5Q9DhZj00mMX0_iui6d";
 	private static readonly HttpClient _webClient = new()
 	{
 		BaseAddress = new Uri("https://sla.cash-n-cash.co.uk/api/products/")
@@ -29,7 +30,7 @@ public static class WebAPI
 		if (!ConnectedToInternet()) return true;
 		var version = GetDataFrom(deployedVersion);
 
-		return new Version(Controls.ApplicationVersion).CompareTo(new Version(version)) >= 0;
+		return new Version(Configuration.ApplicationVersion).CompareTo(new Version(version)) >= 0;
 	}
 
 	public static bool VerifyDatabase()
@@ -37,17 +38,10 @@ public static class WebAPI
 		if (!ConnectedToInternet()) return false;
 		var status = GetDataFrom(databaseConnect);
 
-		try
-		{
-			return bool.Parse(status);
-		}
-		catch
-		{
-			return false;
-		}
+		return bool.TryParse(status, out var result) && result;
 	}
 
-	public static bool SendEntries(List<Models.LogEntry> entries)
+	public static bool SendEntries(IEnumerable<Models.LogEntry> entries)
 	{
 		if (!ConnectedToInternet()) return false;
 
@@ -57,28 +51,29 @@ public static class WebAPI
 
 	public static void RegisterException(Exception x)
 	{
-		if (!Controls.EnableLogOnDiscord) return;
+		if (!Configuration.EnableLogOnDiscord) return;
+		if (!ConnectedToInternet()) return;
 
 		// Fetching Footprints
 		// -------------------
 
 		var footprints = new StackTrace().GetFrames()!
 			.Select(frame => frame.GetMethod()!)
-			.Select(methodReference => $"{methodReference.DeclaringType!}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})").ToList();
+			.Select(methodReference => $"{methodReference.DeclaringType!}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})");
 
 		// Fetching User Information
 		// -------------------------
 
 		var userInf = new[]
 		{
-			CrossUtility.GetCurrentUser(deepFetch: true),
+			CrossUtility.CurrentUser(deepFetch: true),
 			Environment.MachineName,
 		};
 
 		var footers = new[]
 		{
 			// Application Version
-			$"v{Controls.ApplicationVersion}",
+			$"v{Configuration.ApplicationVersion}",
 
 			// Timestamp
 			$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
@@ -87,14 +82,14 @@ public static class WebAPI
 		// Re-Formatting Stack-Trace
 		// -------------------------
 
-		var newTrace = LowLevel_APIs.StackTraceRegex().Replace(x.StackTrace ?? " --- ", "|");
+		var newTrace = LowLevel_APIs.StackTraceRegex().Replace(x.StackTrace ?? Configuration.ImagesDelimiter, "|");
 
 		// Body Building
 		// -------------
 
 		var body = new
 		{
-			username = Controls.MyName + " - Logger",
+			username = Configuration.MyName + " - Logger",
 			avatar_url = "https://i.imgur.com/IvgCM1R.png",
 			embeds = new List<object>
 			{
@@ -136,7 +131,7 @@ public static class WebAPI
 		// Sending the Request
 		// -------------------
 
-		using var res = PostDataTo(Controls.DiscordWebhookURL, System.Text.Json.JsonSerializer.Serialize(body, options));
+		using var res = PostDataTo(DiscordWebhookAddressSLA, System.Text.Json.JsonSerializer.Serialize(body, options));
 	}
 
 	// Web-Utilities
@@ -144,7 +139,7 @@ public static class WebAPI
 
 	public static bool ConnectedToInternet()
 	{
-		if (!Controls.EnableTheInternet) return false;
+		if (!Configuration.EnableTheInternet) return false;
 
 		var connected = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
 		if (!connected) return false;
@@ -199,10 +194,10 @@ public static class WebAPI
 		var now = DateTime.Now;
 		var req = new
 		{
-			UserName = CrossUtility.GetCurrentUser() + '~' + Environment.MachineName,
+			UserName = CrossUtility.CurrentUser() + '~' + Environment.MachineName,
 			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
 			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
-			version = Controls.ApplicationVersion,
+			version = Configuration.ApplicationVersion,
 			data = formatted
 		};
 
@@ -220,7 +215,7 @@ public static class WebAPI
 	public static class AWS
 	{
 		private const string _bucket = "sla-documents";
-		private static readonly string _prefix = $"{Controls.MyName}/{CrossUtility.GetCurrentUser()}@{Environment.MachineName}/";
+		private static readonly string _prefix = $"{Configuration.MyName}/{CrossUtility.CurrentUser()}@{Environment.MachineName}/";
 		private static readonly Amazon.S3.Transfer.TransferUtility _awsClient = new(
 			"AKIARYXL6P2LDR5IYXN5",
 			"maY4buTCyWbXmqHoRvHz46jSPGtoGz6mA94x4WP+",
@@ -236,28 +231,40 @@ public static class WebAPI
 
 		public static List<string> UploadScreenshotsFrom(string imgFolder)
 		{
-			var keys = new List<string>();
+			var keys = new System.Collections.Concurrent.ConcurrentBag<string>();
 			var path = new DirectoryInfo(imgFolder);
 			if (!path.Exists) return [];
 
-			path.GetFiles('*' + Controls.ImagesExtension).AsParallel().WithDegreeOfParallelism(Controls.MaxTransmissionThreads).ForAll(file =>
+			path.GetFiles('*' + Configuration.ImagesExtension).AsParallel().WithDegreeOfParallelism(Configuration.MaxTransmissionThreads).ForAll(file =>
 			{
-				var key = Upload(file.FullName);
-				if (string.IsNullOrEmpty(key)) return;
-				keys.Add(key);
-				file.Delete();
+				// This function has its own try-catch block
+				// as, if in-case of any exception at file's
+				// deletion, it won't disrupt the whole Job.
+				// That would cause the loss of created keys
+
+				try
+				{
+					var key = Upload(file.FullName);
+					if (string.IsNullOrEmpty(key)) return;
+					file.Delete();
+					keys.Add(key);
+				}
+				catch (Exception x)
+				{
+					RegisterException(x);
+				}
 			});
 
-			return keys;
+			return [.. keys];
 		}
 
-		public static bool DownloadScreenshotsTo(List<string> keys, string targetFolder)
+		public static bool DownloadScreenshotsTo(IEnumerable<string> keys, string targetFolder)
 		{
 			var success = true;
 			var catalog = new DirectoryInfo(targetFolder);
 			if (!catalog.Exists) return false;
 
-			keys.AsParallel().WithDegreeOfParallelism(Controls.MaxTransmissionThreads).ForAll(key =>
+			keys.AsParallel().WithDegreeOfParallelism(Configuration.MaxTransmissionThreads).ForAll(key =>
 				success &= DownloadAt(key, Path.Combine(catalog.FullName, key))
 			);
 
@@ -270,7 +277,7 @@ public static class WebAPI
 		// key-methods of this class
 		// containing all the logics
 
-		public static string Upload(string filePath)
+		private static string Upload(string filePath)
 		{
 			try
 			{
@@ -284,7 +291,7 @@ public static class WebAPI
 			}
 		}
 
-		public static bool DownloadAt(string key, string filePath)
+		private static bool DownloadAt(string key, string filePath)
 		{
 			try
 			{

@@ -12,28 +12,12 @@ namespace SLA_Remake;
 
 public static class Utility
 {
-	public static void CreateEntriesFromSavedScreenshots()
-	{
-		var imgs = Path.Combine(Controls.HomeFolder, Controls.ScreenshotFolder);
-		var keys = WebAPI.AWS.UploadScreenshotsFrom(imgs);
-		if (keys.Count == 0) return;
-
-		var logs = keys.Select(key =>
-		{
-			var l = key.LastIndexOf(Controls.ImagesDelimiter, StringComparison.Ordinal) + Controls.ImagesDelimiter.Length;
-			var r = key.LastIndexOf('.');
-			return Models.ScreenshotEntry.Create(key, key[l..r]);
-		}).ToList();
-
-		var res = Database<Models.ScreenshotEntry>.Save(logs);
-	}
-
-	public static IPAddress IP => 
-		Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP);
+	public static IPAddress IP =>
+		Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP) ?? IPAddress.Loopback;
 
 	private static bool AllowedIP(IPAddress ip) =>
 		ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
-		ip.ToString() != "127.0.0.1";
+		!Equals(ip, IPAddress.Loopback);
 }
 
 public static class CrossUtility
@@ -52,11 +36,11 @@ public static class CrossUtility
 #endif
 	}
 
-	public static string GetCurrentUser(bool deepFetch = false)
+	public static string CurrentUser(bool deepFetch = false)
 	{
-		var username = Controls.EnableOriginalUser
+		var username = Configuration.EnableOriginalUser
 			? Environment.UserName
-			: Controls.PlaceholderUsername;
+			: Configuration.PlaceholderUsername;
 		if (!deepFetch) return username;
 #if WIN
 		// Note for the Complication in-case on Windows
@@ -113,8 +97,7 @@ public static class CrossUtility
 		key.SetValue(appName, exeLocation);
 
 #elif MAC
-		var myAppName = Controls.MyName;
-		var plistName = myAppName + ".plist";
+		var plistName = Configuration.MyName + ".plist";
 		var plistPath = Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "~", "Library", "LaunchAgents");
 		var plistFile = Path.Combine(plistPath, plistName);
 
@@ -124,10 +107,10 @@ public static class CrossUtility
 			new XElement("plist", new XAttribute("version", "1.0"),
 				new XElement("dict",
 					new XElement("key", "Label"),
-					new XElement("string", myAppName),
+					new XElement("string", Configuration.MyName),
 					new XElement("key", "ProgramArguments"),
 					new XElement("array",
-						new XElement("string", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, myAppName))),
+						new XElement("string", Path.Combine(Configuration.HomeFolder, Configuration.MyName))),
 					new XElement("key", "RunAtLoad"),
 					new XElement("true")
 				)
@@ -140,7 +123,7 @@ public static class CrossUtility
 		var startInfo = new ProcessStartInfo
 		{
 			FileName = "/bin/bash",
-			Arguments = $"-c \"launchctl list | grep {myAppName}\"",
+			Arguments = $"-c \"launchctl list | grep {Configuration.MyName}\"",
 			RedirectStandardOutput = true,
 			UseShellExecute = false,
 			CreateNoWindow = true,
@@ -338,12 +321,13 @@ public static class CrossUtility
 
 	public static void CaptureAndSaveScreenshot()
 	{
-		const long imgQuality = 30L;
-		var filename = DateTime.Now.ToString("yyyy-MM-dd--HH-mm-ss") + Controls.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Controls.ImagesExtension;
-		var savePath = Path.Combine(Controls.HomeFolder, Controls.ScreenshotFolder);
+		if (!Configuration.CaptureScreenshots) return;
 
-		Directory.CreateDirectory(savePath);
-		var saveFile = Path.Combine(savePath, filename);
+		const long imgQuality = 30L;
+		var filename = DateTime.Now.ToString("yyyy-MM-dd--HH-mm-ss") + Configuration.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.ImagesExtension;
+
+		Directory.CreateDirectory(Configuration.ScreenshotsFolder);
+		var saveFile = Path.Combine(Configuration.ScreenshotsFolder, filename);
 #if WIN
 		using var BMP = new System.Drawing.Bitmap(Screen.Wide, Screen.High);
 		using var GFX = System.Drawing.Graphics.FromImage(BMP);
@@ -354,7 +338,7 @@ public static class CrossUtility
 
 		BMP.Save(saveFile, encoder, e_param);
 #elif MAC
-		var temporary = Path.Combine(savePath, $"{Guid.NewGuid()}.png");
+		var temporary = Path.Combine(Configuration.ScreenshotsFolder, $"{Guid.NewGuid()}.png");
 		var startInfo = new ProcessStartInfo
 		{
 			FileName = "/usr/sbin/screencapture",

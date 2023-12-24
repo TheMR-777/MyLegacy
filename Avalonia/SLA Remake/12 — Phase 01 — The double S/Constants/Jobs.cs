@@ -1,6 +1,7 @@
 ﻿using SLA_Remake.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SLA_Remake;
 
@@ -13,7 +14,7 @@ public static class Jobs
 	private static readonly List<Tuple<Action, Func<TimeSpan>>> Workflows =
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
-		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(1, 15))),
+		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
 	];
 
 	// Jobs
@@ -21,7 +22,7 @@ public static class Jobs
 
 	private static void PostmanJob()
 	{
-		if (!Controls.EnableLoggingOnAPI) return;
+		if (!Configuration.EnableLoggingOnAPI) return;
 
 		if (!WebAPI.VerifyDatabase()) return;
 		var log_entries = Database<LogEntry>.GetSavedEntries();
@@ -35,11 +36,16 @@ public static class Jobs
 
 	private static void CameramanJob()
 	{
-		if (!Controls.CaptureScreenshots) return;
 		CrossUtility.CaptureAndSaveScreenshot();
 
+		if (!Configuration.EnableCacheLogging) return;
 		if (!WebAPI.ConnectedToInternet()) return;
-		Utility.CreateEntriesFromSavedScreenshots();
+
+		var keys = WebAPI.AWS.UploadScreenshotsFrom(Configuration.ScreenshotsFolder);
+		if (keys.Count == 0) return;
+
+		var log = keys.Select(ScreenshotEntry.Create);
+		var res = Database<ScreenshotEntry>.Save(log);
 	}
 
 	// Utilities

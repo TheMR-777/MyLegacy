@@ -15,14 +15,24 @@ public class ScreenshotEntry
 	public string LogTime { get; set; }
 	public string AgentVersion { get; set; }
 
-	public static ScreenshotEntry Create(string awsRef, string currentProcess = null) => new()
+	public static ScreenshotEntry Create(string awsRef) => new()
 	{
-		Username = CrossUtility.GetCurrentUser(),
+		Username = CrossUtility.CurrentUser(),
 		UserIP = Utility.IP.ToString(),
 		UserPCName = Environment.MachineName,
 		ScreenshotAWS = awsRef,
-		CurrentApp = currentProcess ?? CrossUtility.GetActiveProcessInfo().ProcessName,
+		CurrentApp = ExtractProcessName(awsRef),
 		LogTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-		AgentVersion = Controls.ApplicationVersion
+		AgentVersion = Configuration.ApplicationVersion
 	};
+
+	private static string ExtractProcessName(string key)
+	{
+        var l = key.LastIndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal) + Configuration.ImagesDelimiter.Length;
+        var r = key.LastIndexOf('.');
+
+		return l > r || l == -1 || r == -1 || r - l < 2
+			? "N/A"
+            : key[l..r];
+    }
 }

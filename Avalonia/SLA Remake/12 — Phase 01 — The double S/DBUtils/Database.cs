@@ -18,8 +18,8 @@ public static class Database<T>
 		private static readonly Type _type_i = typeof(T);
 		private static readonly string _name = _type_i.Name;
 		private static readonly System.Reflection.PropertyInfo[] _properties = _type_i.GetProperties();
-		private static readonly List<string> _header = _properties.Select(p => p.Name).ToList();
-		private static readonly List<string> _values = _properties.Select(p => $"@{p.Name}").ToList();
+		private static readonly IEnumerable<string> _header = _properties.Select(p => p.Name);
+		private static readonly IEnumerable<string> _values = _properties.Select(p => $"@{p.Name}");
 
 		public static string GenerateTable() => $"CREATE TABLE IF NOT EXISTS {_name} ({string.Join(", ", _header)});";
 		public static string InsertEntity() => $"INSERT INTO {_name} ({string.Join(", ", _header)}) VALUES ({string.Join(", ", _values)});";
@@ -27,22 +27,22 @@ public static class Database<T>
 		public static string ClearTable() => $"DELETE FROM {_name};";
 	}
 
-	private static readonly string DatabaseLocation = System.IO.Path.Combine(Controls.HomeFolder, Controls.DatabaseFullName);
+	private static readonly string DatabaseLocation = Configuration.DatabaseDirectory;
 	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
 	public static int Save(T entry) => Save([entry]);
 
-	public static int Save(List<T> entry)
+	public static int Save(IEnumerable<T> entries)
 	{
-		if (!Controls.EnableCacheLogging) return 0;
+		if (!Configuration.EnableCacheLogging) return 0;
 
 		Connection.Open();
 		var query = QueryBuilder.GenerateTable();
 		Connection.Execute(query);
 
 		query = QueryBuilder.InsertEntity();
-		var result = Connection.Execute(query, entry);
+		var result = Connection.Execute(query, entries);
 
 		Connection.Close();
 		return result;
@@ -50,7 +50,7 @@ public static class Database<T>
 
 	public static List<T> GetSavedEntries()
 	{
-		if (!Controls.EnableCacheLogging) return [];
+		if (!Configuration.EnableCacheLogging) return [];
 
 		Connection.Open();
 		var query = QueryBuilder.RetrieveAll();
@@ -61,7 +61,7 @@ public static class Database<T>
 
 	public static int Clear()
 	{
-		if (!Controls.EnableCacheLogging) return 0;
+		if (!Configuration.EnableCacheLogging) return 0;
 
 		Connection.Open();
 		var query = QueryBuilder.ClearTable();
