@@ -17,7 +17,7 @@ public class Host : Application
 	{
 		if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
 		{
-			if (Grant.EveryAccessAcquired)
+			if (Grant.FullyAuthorized)
 			{
 				desktop.ShutdownRequested += MainWindow.WindowClosing;
 				desktop.Exit += MainWindow.WindowClosed;
@@ -36,13 +36,6 @@ public class Host : Application
 	// ---------
 
 	private static readonly SingleGlobalInstance Lock = new();
-
-	private static class Grant
-	{
-		public static readonly bool DuplicateInstance = !Lock.TryAcquireExclusiveLock();
-		public static readonly bool NewVersionRelease = !WebAPI.VerifyVersion();
-		public static bool EveryAccessAcquired => !DuplicateInstance && !NewVersionRelease;
-	}
 
 	private static Avalonia.Controls.Window AlternateWindow(string title, string content) => new()
 	{
@@ -69,10 +62,17 @@ public class Host : Application
 		}
 	};
 
+	private static class Grant
+	{
+		public static readonly bool DuplicateInstance = !Lock.TryAcquireExclusiveLock();
+		public static readonly bool NewVersionRelease = !WebAPI.VerifyVersion();
+		public static bool FullyAuthorized => !DuplicateInstance && !NewVersionRelease;
+	}
+
 	private class SingleGlobalInstance : IDisposable
 	{
 		// This class is using Singleton Pattern, with Specialized
-		// keys and locks to ensure only one instance of SLA runs.
+		// keys and locks, to ensure only one instance of SLA runs
 
 		private System.IO.FileStream _lockFile;
 		private const string ApplicationCognition = "h1m4a4a0h30-u3m5d1m5k2n-m0a4a0m0r1a";

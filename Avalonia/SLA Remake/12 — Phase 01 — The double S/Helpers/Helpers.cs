@@ -12,6 +12,17 @@ namespace SLA_Remake;
 
 public static class Utility
 {
+	public static string EncodeDate(DateTime date) => date
+		.ToOADate()
+		.ToString("F15")
+		.Replace('.', '-');
+
+	public static DateTime DecodeDate(string date) => DateTime.FromOADate(
+		double.Parse(
+			date.Replace('-', '.')
+		)
+	);
+
 	public static IPAddress IP =>
 		Dns.GetHostAddresses(Dns.GetHostName()).FirstOrDefault(AllowedIP) ?? IPAddress.Loopback;
 
@@ -28,11 +39,11 @@ public static class CrossUtility
 	public static class Screen
 	{
 #if WIN
-		public static readonly int Wide = LowLevel_APIs.GetSystemMetrics(0);
-		public static readonly int High = LowLevel_APIs.GetSystemMetrics(1);
+		public static int Wide => LowLevel_APIs.GetSystemMetrics(0);
+		public static int High => LowLevel_APIs.GetSystemMetrics(1);
 #elif MAC
-		public static readonly int Wide = LowLevel_APIs.CoreGraphics.CGDisplayPixelsWide(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
-		public static readonly int High = LowLevel_APIs.CoreGraphics.CGDisplayPixelsHigh(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
+		public static int Wide => LowLevel_APIs.CoreGraphics.CGDisplayPixelsWide(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
+		public static int High => LowLevel_APIs.CoreGraphics.CGDisplayPixelsHigh(LowLevel_APIs.CoreGraphics.CGMainDisplayID());
 #endif
 	}
 
@@ -110,7 +121,7 @@ public static class CrossUtility
 					new XElement("string", Configuration.MyName),
 					new XElement("key", "ProgramArguments"),
 					new XElement("array",
-						new XElement("string", Path.Combine(Configuration.HomeFolder, Configuration.MyName))),
+						new XElement("string", Path.Combine(Configuration.MyPath, Configuration.MyName))),
 					new XElement("key", "RunAtLoad"),
 					new XElement("true")
 				)
@@ -324,7 +335,7 @@ public static class CrossUtility
 		if (!Configuration.CaptureScreenshots) return;
 
 		const long imgQuality = 30L;
-		var filename = DateTime.Now.ToString("yyyy-MM-dd--HH-mm-ss") + Configuration.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.ImagesExtension;
+		var filename = Utility.EncodeDate(DateTime.Now) + Configuration.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.ImagesExtension;
 
 		Directory.CreateDirectory(Configuration.ScreenshotsFolder);
 		var saveFile = Path.Combine(Configuration.ScreenshotsFolder, filename);
@@ -377,8 +388,8 @@ public static partial class LowLevel_APIs
 		public const string CoreGraphs = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
 	}
 
-	[GeneratedRegex(@"^\s*at", RegexOptions.Multiline)]
-	public static partial Regex StackTraceRegex();
+	[GeneratedRegex(@"^\s*at (?<namespace>(SLA_Remake\.|Avalonia\.|System\.)?)?(?<method>.+?)( in (?<filepath>.+\\)?(?<filename>[^\\]+):line (?<line>\d+))?\s*$", RegexOptions.Multiline)]
+	public static partial Regex StackTraceMarksman();
 
 #if WIN
 

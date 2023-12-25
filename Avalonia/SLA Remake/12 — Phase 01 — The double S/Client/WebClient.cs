@@ -14,6 +14,10 @@ public static class WebAPI
 	{
 		BaseAddress = new Uri("https://sla.cash-n-cash.co.uk/api/products/")
 	};
+	public static readonly System.Text.Json.JsonSerializerOptions OptionsJSON = new()
+	{
+		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+	};
 
 	// The Endpoints
 	// -------------
@@ -30,7 +34,7 @@ public static class WebAPI
 		if (!ConnectedToInternet()) return true;
 		var version = GetDataFrom(deployedVersion);
 
-		return new Version(Configuration.ApplicationVersion).CompareTo(new Version(version)) >= 0;
+		return new Version(Configuration.ApplicationsVersion).CompareTo(new Version(version)) >= 0;
 	}
 
 	public static bool VerifyDatabase()
@@ -49,7 +53,7 @@ public static class WebAPI
 		return res.Content.ReadAsStringAsync().Result == "1";
 	}
 
-	public static void RegisterException(Exception x)
+	public static void RegisterException(Exception x, bool verbose = false)
 	{
 		if (!Configuration.EnableLogOnDiscord) return;
 		if (!ConnectedToInternet()) return;
@@ -59,7 +63,7 @@ public static class WebAPI
 
 		var footprints = new StackTrace().GetFrames()!
 			.Select(frame => frame.GetMethod()!)
-			.Select(methodReference => $"{methodReference.DeclaringType!}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})");
+			.Select(methodReference => $"> {(verbose ? ".." : methodReference.DeclaringType!)}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})");
 
 		// Fetching User Information
 		// -------------------------
@@ -73,16 +77,22 @@ public static class WebAPI
 		var footers = new[]
 		{
 			// Application Version
-			$"v{Configuration.ApplicationVersion}",
+			$"v{Configuration.ApplicationsVersion}",
+
+			// System Information
+			Environment.Is64BitOperatingSystem ? "x64" : "x86",
+			Environment.OSVersion.ToString(),
 
 			// Timestamp
-			$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}"
+			$"{DateTime.Now:dd-MM-yyyy hh':'mm':'ss tt}",
 		};
 
-		// Re-Formatting Stack-Trace
-		// -------------------------
+		// Reformatting Stack-Trace
+		// ------------------------
 
-		var newTrace = LowLevel_APIs.StackTraceRegex().Replace(x.StackTrace ?? Configuration.ImagesDelimiter, "|");
+		var newTrace = verbose
+			? FormatStackTraceVerbose(x.StackTrace)
+			: FormatStackTrace(x.StackTrace);
 
 		// Body Building
 		// -------------
@@ -99,13 +109,9 @@ public static class WebAPI
 					{
 						name = string.Join("  |  ", userInf),
 						url = "https://www.google.com",
-						icon_url = "https://i.imgur.com/xCvzudW.png"
+						icon_url = "https://i.imgur.com/WoNyIIX.png"
 					},
 					color = 16007990,
-					thumbnail = new
-					{
-						url = "https://i.imgur.com/IvgCM1R.jpg"
-					},
 
 					// The embeds are not being used
 					// due to the limited characters
@@ -115,7 +121,7 @@ public static class WebAPI
 					$"**Message of Exception** \n" +
 					$"```{x.Message}``` \n" +
 					$"**Method Trail** \n" +
-					$"```{string.Join(" < ", footprints)}``` \n" +
+					$"```{string.Join('\n', footprints.Take(3))}``` \n" +
 					$"**Stack-Trace** \n" +
 					$"```{newTrace}```",
 					fields = new List<Dictionary<string, string>> { },
@@ -131,7 +137,7 @@ public static class WebAPI
 		// Sending the Request
 		// -------------------
 
-		using var res = PostDataTo(DiscordWebhookAddressSLA, System.Text.Json.JsonSerializer.Serialize(body, options));
+		using var res = PostDataTo(DiscordWebhookAddressSLA, System.Text.Json.JsonSerializer.Serialize(body, OptionsJSON));
 	}
 
 	// Web-Utilities
@@ -197,25 +203,36 @@ public static class WebAPI
 			UserName = CrossUtility.CurrentUser() + '~' + Environment.MachineName,
 			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
 			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
-			version = Configuration.ApplicationVersion,
+			version = Configuration.ApplicationsVersion,
 			data = formatted
 		};
 
-		return System.Text.Json.JsonSerializer.Serialize(req, options);
+		return System.Text.Json.JsonSerializer.Serialize(req, OptionsJSON);
 	}
 
-	private static readonly System.Text.Json.JsonSerializerOptions options = new() 
-	{ 
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull 
-	};
+	private static string FormatStackTrace(string stackTrace) => LowLevel_APIs.StackTraceMarksman().Replace(stackTrace, match => 
+		match.Groups["filename"].Success && match.Groups["line"].Success
+			? $"| {match.Groups["method"].Value}\n> {match.Groups["filename"].Value}:line {match.Groups["line"].Value}"
+			: $"| {match.Groups["method"].Value}");
+
+	private static string FormatStackTraceVerbose(string stackTrace) => LowLevel_APIs.StackTraceMarksman().Replace(stackTrace, match => {
+		var line = $"- Method: {match.Groups["method"].Value}";
+
+		if (!match.Groups["filename"].Success) return line;
+		line += $"\n\t- File: {match.Groups["filename"].Value}" +
+				$"\n\t- Line: {match.Groups["line"].Value}";
+
+		return line;
+	});
 
 	// AWS-S3 Utility Class
 	// --------------------
 
 	public static class AWS
 	{
+		public const char BacksSlash = '/';
 		private const string _bucket = "sla-documents";
-		private static readonly string _prefix = $"{Configuration.MyName}/{CrossUtility.CurrentUser()}@{Environment.MachineName}/";
+		private static readonly string _prefix = $"{Configuration.MyName}{BacksSlash}{CrossUtility.CurrentUser()}@{Environment.MachineName}{BacksSlash}";
 		private static readonly Amazon.S3.Transfer.TransferUtility _awsClient = new(
 			"AKIARYXL6P2LDR5IYXN5",
 			"maY4buTCyWbXmqHoRvHz46jSPGtoGz6mA94x4WP+",

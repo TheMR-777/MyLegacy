@@ -1,8 +1,5 @@
-﻿using System.Globalization;
-using System.Linq;
-using System.Net;
+﻿using System.Linq;
 using System;
-using System.Collections.Generic;
 
 namespace SLA_Remake.Models;
 
@@ -30,8 +27,8 @@ public class LogEntry
 		UserId = "1",
 		UserName = CrossUtility.CurrentUser(),
 		UserIp = Utility.IP.ToString(),
-		LogDate = DateTime.Now.Date.ToOADate().ToString(CultureInfo.InvariantCulture),
-		UserPCName = Dns.GetHostName(),
+		LogDate = DateTime.Now.Date.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture),
+		UserPCName = Environment.MachineName,
 		UserDisplayName = "USER",
 
 		// Variables
@@ -47,7 +44,7 @@ public class LogEntry
 			? "0"
 			: "1",
 		Reason = login
-			? RemoveSpecialCharacters(reason.RequiresMoreDetail
+			? RemoveSpecialCharacters(reason!.RequiresMoreDetail
 				? reasonDetail?.Trim()
 				: BackwardCompatibility.GetCompatibleReasonText(reason))
 			: null,
@@ -55,7 +52,7 @@ public class LogEntry
 			? BackwardCompatibility.GetCompatibleReasonText(reason)
 			: null,
 		ReasonId = login
-			? reason.DatabaseID.ToString(CultureInfo.InvariantCulture)
+			? reason.DatabaseID.ToString(System.Globalization.CultureInfo.InvariantCulture)
 			: "0",
 		LogSide = login
 			? "i"
@@ -77,7 +74,7 @@ public static class BackwardCompatibility
 	// This class contains legacy structures.
 	// These are mapped to the new structure.
 
-	private static readonly Dictionary<uint, string> OldReasons = new()
+	private static readonly System.Collections.Generic.Dictionary<uint, string> OldReasons = new()
 	{
 		// The Dictionary is being used, to maintain the order (of ID) of the Reasons.
 		// The order is crucial, as it is by the order of IDs located in the Database.

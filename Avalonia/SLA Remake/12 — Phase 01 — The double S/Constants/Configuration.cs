@@ -20,13 +20,13 @@ public static class Configuration
 	// Other Constants
 	// ---------------
 
-	public static readonly string HomeFolder = System.AppDomain.CurrentDomain.BaseDirectory;
+	public static readonly string MyName = System.AppDomain.CurrentDomain.FriendlyName;
+	public static readonly string MyPath = System.AppDomain.CurrentDomain.BaseDirectory;
+	public static readonly string DatabaseDirectory = System.IO.Path.Combine(MyPath, MyName + ".sqlite");
+	public static readonly string ScreenshotsFolder = System.IO.Path.Combine(MyPath, "Screenshots");
 	public const string PlaceholderUsername = "TEST";
 	public const int MaxTransmissionThreads = 5;
-	public const string ApplicationVersion = EnableNewerVersion ? "3.0.0.00" : "2.0.0.01";
-	public static readonly string MyName = System.AppDomain.CurrentDomain.FriendlyName;
-	public static readonly string DatabaseDirectory = System.IO.Path.Combine(HomeFolder, $"{MyName}.sqlite");
-	public static readonly string ScreenshotsFolder = System.IO.Path.Combine(HomeFolder, "Screenshots");
+	public const string ApplicationsVersion = EnableNewerVersion ? "3.0.0.00" : "2.0.0.01";
 	public const string ImagesExtension = ".jpg";
 	public const string ImagesDelimiter = "_(~$~)_";
 }

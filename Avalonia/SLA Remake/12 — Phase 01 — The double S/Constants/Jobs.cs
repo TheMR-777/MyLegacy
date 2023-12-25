@@ -14,7 +14,8 @@ public static class Jobs
 	private static readonly List<Tuple<Action, Func<TimeSpan>>> Workflows =
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
-		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
+		new(CameramanJob, () => TimeSpan.FromSeconds(_random.Next(5, 15))),
+		//new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
 	];
 
 	// Jobs

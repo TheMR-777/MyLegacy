@@ -22,17 +22,29 @@ public class ScreenshotEntry
 		UserPCName = Environment.MachineName,
 		ScreenshotAWS = awsRef,
 		CurrentApp = ExtractProcessName(awsRef),
-		LogTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-		AgentVersion = Configuration.ApplicationVersion
+		LogTime = ExtractTimeStamp(awsRef).ToString("yyyy-MM-dd HH:mm:ss"),
+		AgentVersion = Configuration.ApplicationsVersion
 	};
 
 	private static string ExtractProcessName(string key)
 	{
-        var l = key.LastIndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal) + Configuration.ImagesDelimiter.Length;
-        var r = key.LastIndexOf('.');
+		var l = key.LastIndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal) + Configuration.ImagesDelimiter.Length;
+		var r = key.LastIndexOf('.');
 
-		return l > r || l == -1 || r == -1 || r - l < 2
-			? "N/A"
-            : key[l..r];
-    }
+		return IsValidRange(l, r)
+			? key[l..r]
+			: "N/A";
+	}
+
+	private static DateTime ExtractTimeStamp(string key)
+	{
+		var l = key.LastIndexOf(WebAPI.AWS.BacksSlash) + 1;
+		var r = key.IndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal);
+
+		return IsValidRange(l, r)
+			? Utility.DecodeDate(key[l..r])
+			: DateTime.Now;
+	}
+
+	private static bool IsValidRange(int l, int r) => l < r && l != -1 && r != -1;
 }

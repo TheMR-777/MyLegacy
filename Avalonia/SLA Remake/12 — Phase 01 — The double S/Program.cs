@@ -18,7 +18,7 @@ internal class Program
 		}
 		catch (Exception x)
 		{
-			WebAPI.RegisterException(x);
+			WebAPI.RegisterException(x, verbose: true);
 
 			System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(15)).Wait();
 			System.Diagnostics.Process.Start(Environment.ProcessPath!);
