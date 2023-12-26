@@ -14,8 +14,8 @@ public static class Jobs
 	private static readonly List<Tuple<Action, Func<TimeSpan>>> Workflows =
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
-		new(CameramanJob, () => TimeSpan.FromSeconds(_random.Next(5, 15))),
-		//new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
+		//new(CameramanJob, () => TimeSpan.FromSeconds(_random.Next(5, 15))),
+		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
 	];
 
 	// Jobs
@@ -23,6 +23,11 @@ public static class Jobs
 
 	private static void PostmanJob()
 	{
+		// Responsibility:
+		// ---------------
+		// Postman's Job is to send all the saved logs to the API
+		// and then, clear the respective local SQLite3 Database.
+
 		if (!Configuration.EnableLoggingOnAPI) return;
 
 		if (!WebAPI.VerifyDatabase()) return;
@@ -37,6 +42,12 @@ public static class Jobs
 
 	private static void CameramanJob()
 	{
+		// Responsibility:
+		// ---------------
+		// Cameraman's Job is to capture screenshots and save them locally
+		// and then, try to upload all the screenshots to AWS S3, and make
+		// keys. Then save the keys obtained in the Local SQLite3 Database
+
 		CrossUtility.CaptureAndSaveScreenshot();
 
 		if (!Configuration.EnableCacheLogging) return;

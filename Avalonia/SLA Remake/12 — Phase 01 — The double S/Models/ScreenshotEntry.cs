@@ -10,21 +10,24 @@ public class ScreenshotEntry
 	public string Username { get; set; }
 	public string UserIP { get; set; }
 	public string UserPCName { get; set; }
-	public string ScreenshotAWS { get; set; }
-	public string CurrentApp { get; set; }
-	public string LogTime { get; set; }
-	public string AgentVersion { get; set; }
+	public string ScreenshotKeyAWS { get; set; }	// AWS S3 Key
+	public string CurrentApp { get; set; }			// Currently Executing Application
+	public string LogTime { get; set; }				// Time of the Screenshot-Capture
+	public string Version { get; set; }				// Agent Version
 
 	public static ScreenshotEntry Create(string awsRef) => new()
 	{
 		Username = CrossUtility.CurrentUser(),
-		UserIP = Utility.IP.ToString(),
+		UserIP = MacroUtility.IP.ToString(),
 		UserPCName = Environment.MachineName,
-		ScreenshotAWS = awsRef,
+		ScreenshotKeyAWS = awsRef,
 		CurrentApp = ExtractProcessName(awsRef),
 		LogTime = ExtractTimeStamp(awsRef).ToString("yyyy-MM-dd HH:mm:ss"),
-		AgentVersion = Configuration.ApplicationsVersion
+		Version = Configuration.ApplicationsVersion
 	};
+
+	// Utilities
+	// ---------
 
 	private static string ExtractProcessName(string key)
 	{
@@ -42,7 +45,7 @@ public class ScreenshotEntry
 		var r = key.IndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal);
 
 		return IsValidRange(l, r)
-			? Utility.DecodeDate(key[l..r])
+			? MacroUtility.DecodeDate(key[l..r])
 			: DateTime.Now;
 	}
 

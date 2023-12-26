@@ -26,7 +26,7 @@ public class LogEntry
 
 		UserId = "1",
 		UserName = CrossUtility.CurrentUser(),
-		UserIp = Utility.IP.ToString(),
+		UserIp = MacroUtility.IP.ToString(),
 		LogDate = DateTime.Now.Date.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture),
 		UserPCName = Environment.MachineName,
 		UserDisplayName = "USER",

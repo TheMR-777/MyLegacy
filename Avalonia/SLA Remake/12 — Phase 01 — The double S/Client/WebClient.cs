@@ -63,7 +63,7 @@ public static class WebAPI
 
 		var footprints = new StackTrace().GetFrames()!
 			.Select(frame => frame.GetMethod()!)
-			.Select(methodReference => $"> {(verbose ? ".." : methodReference.DeclaringType!)}.{methodReference.Name}({string.Join(", ", methodReference.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray())})");
+			.Select(method => FormatMethodName(method, verbose));
 
 		// Fetching User Information
 		// -------------------------
@@ -108,7 +108,6 @@ public static class WebAPI
 					author = new
 					{
 						name = string.Join("  |  ", userInf),
-						url = "https://www.google.com",
 						icon_url = "https://i.imgur.com/WoNyIIX.png"
 					},
 					color = 16007990,
@@ -124,7 +123,6 @@ public static class WebAPI
 					$"```{string.Join('\n', footprints.Take(3))}``` \n" +
 					$"**Stack-Trace** \n" +
 					$"```{newTrace}```",
-					fields = new List<Dictionary<string, string>> { },
 					footer = new
 					{
 						text = string.Join("   |   ", footers),
@@ -208,6 +206,15 @@ public static class WebAPI
 		};
 
 		return System.Text.Json.JsonSerializer.Serialize(req, OptionsJSON);
+	}
+
+	private static string FormatMethodName(System.Reflection.MethodBase method, bool is_verbose)
+	{
+		var @namespace = method.DeclaringType!.ToString();
+		var ignoreAble = new[] { "SLA_Remake", "Avalonia", "System" }.FirstOrDefault(ign => @namespace.StartsWith(ign));
+		@namespace = string.IsNullOrEmpty(ignoreAble) ? @namespace : @namespace.Replace(ignoreAble + '.', "");
+		var parameters = string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}"));
+		return $"| {(is_verbose ? ".." : @namespace)}.{method.Name}({parameters})";
 	}
 
 	private static string FormatStackTrace(string stackTrace) => LowLevel_APIs.StackTraceMarksman().Replace(stackTrace, match => 

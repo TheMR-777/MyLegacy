@@ -10,7 +10,7 @@ using System.Xml.Linq;
 
 namespace SLA_Remake;
 
-public static class Utility
+public static class MacroUtility
 {
 	public static string EncodeDate(DateTime date) => date
 		.ToOADate()
@@ -335,7 +335,7 @@ public static class CrossUtility
 		if (!Configuration.CaptureScreenshots) return;
 
 		const long imgQuality = 30L;
-		var filename = Utility.EncodeDate(DateTime.Now) + Configuration.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.ImagesExtension;
+		var filename = MacroUtility.EncodeDate(DateTime.Now) + Configuration.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.ImagesExtension;
 
 		Directory.CreateDirectory(Configuration.ScreenshotsFolder);
 		var saveFile = Path.Combine(Configuration.ScreenshotsFolder, filename);

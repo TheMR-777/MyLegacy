@@ -36,37 +36,43 @@ public static class Database<T>
 	public static int Save(IEnumerable<T> entries)
 	{
 		if (!Configuration.EnableCacheLogging) return 0;
+		lock (Connection)
+		{
+			Connection.Open();
+			var query = QueryBuilder.GenerateTable();
+			Connection.Execute(query);
 
-		Connection.Open();
-		var query = QueryBuilder.GenerateTable();
-		Connection.Execute(query);
+			query = QueryBuilder.InsertEntity();
+			var yield = Connection.Execute(query, entries);
 
-		query = QueryBuilder.InsertEntity();
-		var result = Connection.Execute(query, entries);
-
-		Connection.Close();
-		return result;
+			Connection.Close();
+			return yield;
+		}
 	}
 
 	public static List<T> GetSavedEntries()
 	{
 		if (!Configuration.EnableCacheLogging) return [];
-
-		Connection.Open();
-		var query = QueryBuilder.RetrieveAll();
-		var result = Connection.Query<T>(query).ToList();
-		Connection.Close();
-		return result;
+		lock (Connection)
+		{
+			Connection.Open();
+			var query = QueryBuilder.RetrieveAll();
+			var yield = Connection.Query<T>(query).ToList();
+			Connection.Close();
+			return yield;
+		}
 	}
 
 	public static int Clear()
 	{
 		if (!Configuration.EnableCacheLogging) return 0;
-
-		Connection.Open();
-		var query = QueryBuilder.ClearTable();
-		var result = Connection.Execute(query);
-		Connection.Close();
-		return result;
+		lock (Connection)
+		{
+			Connection.Open();
+			var query = QueryBuilder.ClearTable();
+			var yield = Connection.Execute(query);
+			Connection.Close();
+			return yield;
+		}
 	}
 }
