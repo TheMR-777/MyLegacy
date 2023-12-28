@@ -34,7 +34,7 @@ public static class MacroUtility
 public static class CrossUtility
 {
 	// CrossUtility provides a uniform API for all the OS-specific APIs.
-	// Each method is implemented separately for both Windows and MacOS.
+	// Each method is implemented separately for both Windows and macOS.
 
 	public static class Screen
 	{
@@ -335,10 +335,10 @@ public static class CrossUtility
 		if (!Configuration.CaptureScreenshots) return;
 
 		const long imgQuality = 30L;
-		var filename = MacroUtility.EncodeDate(DateTime.Now) + Configuration.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.ImagesExtension;
+		var filename = MacroUtility.EncodeDate(DateTime.Now) + Configuration.Screenshots.ImagesDelimiter + GetActiveProcessInfo().ProcessName + Configuration.Screenshots.ImagesExtension;
 
-		Directory.CreateDirectory(Configuration.ScreenshotsFolder);
-		var saveFile = Path.Combine(Configuration.ScreenshotsFolder, filename);
+		Directory.CreateDirectory(Configuration.Screenshots.Route);
+		var saveFile = Path.Combine(Configuration.Screenshots.Route, filename);
 #if WIN
 		using var BMP = new System.Drawing.Bitmap(Screen.Wide, Screen.High);
 		using var GFX = System.Drawing.Graphics.FromImage(BMP);
@@ -349,7 +349,7 @@ public static class CrossUtility
 
 		BMP.Save(saveFile, encoder, e_param);
 #elif MAC
-		var temporary = Path.Combine(Configuration.ScreenshotsFolder, $"{Guid.NewGuid()}.png");
+		var temporary = Path.Combine(Configuration.Screenshots.Route, $"{Guid.NewGuid()}.png");
 		var startInfo = new ProcessStartInfo
 		{
 			FileName = "/usr/sbin/screencapture",
@@ -368,18 +368,18 @@ public static class CrossUtility
 #endif
 	}
 
-	public static void CaptureAndShareAudioData()
+	public static void RecordAndStreamAudioData()
 	{
 		if (!Configuration.CaptureMicrophones) return;
 
 		// Setting the Executable Name
 		// ---------------------------
 
-		var ffmpegName = "ffmpeg";
+		var ffmpegName = Configuration.AdiosFFMPEG.exeName;
 #if WIN
 		ffmpegName += ".exe";
 #endif
-		var ffmpegPath = Path.Combine(Configuration.MyPath, "Resources", ffmpegName);
+		var ffmpegPath = Path.Combine(Configuration.Resources, ffmpegName);
 
 #if WIN
 		// Fetching the Audio Source
@@ -393,7 +393,7 @@ public static class CrossUtility
 			StandardErrorEncoding = System.Text.Encoding.UTF8,
 			RedirectStandardError = true,
 			RedirectStandardOutput = true,
-			Arguments = "-list_devices true -f dshow -i dummy"
+			Arguments = Configuration.AdiosFFMPEG.Command.ListDevices,
 		};
 		var method = Process.Start(detail);
 		method?.WaitForExit();
@@ -414,15 +414,20 @@ public static class CrossUtility
 			"avfoundation -i \":default\"";
 #endif
 
-		// Starting the FFMPEG Process
-		// ---------------------------
+		// Starting the FFMPEG
+		// -------------------
 
 		var startInfo = new ProcessStartInfo
 		{
 			FileName = ffmpegPath,
 			UseShellExecute = false,
-			CreateNoWindow = true,
-			Arguments = $"-f {ffmpegMode} -acodec libmp3lame -ar 44100 -f rtp rtp://localhost:7860",
+			CreateNoWindow = false,
+//#if DEBUG
+//			false,
+//#else
+//			true,
+//#endif
+			Arguments = string.Format(Configuration.AdiosFFMPEG.Command.RecordAudio, ffmpegMode),
 		};
 		Process.Start(startInfo)?.WaitForExit();
 	}

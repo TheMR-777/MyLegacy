@@ -29,9 +29,11 @@ public class ScreenshotEntry
 	// Utilities
 	// ---------
 
+	public string Serialize() => System.Text.Json.JsonSerializer.Serialize(this, WebAPI.OptionsJSON);
+
 	private static string ExtractProcessName(string key)
 	{
-		var l = key.LastIndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal) + Configuration.ImagesDelimiter.Length;
+		var l = key.LastIndexOf(Configuration.Screenshots.ImagesDelimiter, StringComparison.Ordinal) + Configuration.Screenshots.ImagesDelimiter.Length;
 		var r = key.LastIndexOf('.');
 
 		return IsValidRange(l, r)
@@ -42,7 +44,7 @@ public class ScreenshotEntry
 	private static DateTime ExtractTimeStamp(string key)
 	{
 		var l = key.LastIndexOf(WebAPI.AWS.BacksSlash) + 1;
-		var r = key.IndexOf(Configuration.ImagesDelimiter, StringComparison.Ordinal);
+		var r = key.IndexOf(Configuration.Screenshots.ImagesDelimiter, StringComparison.Ordinal);
 
 		return IsValidRange(l, r)
 			? MacroUtility.DecodeDate(key[l..r])

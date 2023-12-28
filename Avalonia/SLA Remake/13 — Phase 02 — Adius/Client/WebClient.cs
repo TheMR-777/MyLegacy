@@ -24,6 +24,7 @@ public static class WebAPI
 
 	private const string deployedVersion = "GetCurrentSLAVersion";
 	private const string databaseConnect = "GetCheckDBConnection";
+	private const string screenshotsPost = "UploadScreenshots";
 	private const string logEntryLogging = "GetSLALogEntries";
 
 	// Main Methods
@@ -49,7 +50,7 @@ public static class WebAPI
 	{
 		if (!ConnectedToInternet()) return false;
 
-		using var res = PostDataTo(logEntryLogging, Serialize(entries));
+		using var res = PostDataTo(logEntryLogging, Models.LogEntry.Serialize(entries));
 		return res.Content.ReadAsStringAsync().Result == "1";
 	}
 
@@ -183,32 +184,6 @@ public static class WebAPI
 		return _webClient.SendAsync(req).Result;
 	}
 
-	private static string Serialize(IEnumerable<Models.LogEntry> entries)
-	{
-		// The Serialization is being done
-		// as according to the legacy SLA,
-		// to maintain the API-consistency
-
-		var formatted = entries.Select(entry =>
-		{
-			var properties = entry.GetType().GetProperties();
-			var values = properties.Select(property => property.GetValue(entry, null));
-			return string.Join("|", values);
-		});
-
-		var now = DateTime.Now;
-		var req = new
-		{
-			UserName = CrossUtility.CurrentUser() + '~' + Environment.MachineName,
-			logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
-			LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
-			version = Configuration.ApplicationsVersion,
-			data = formatted
-		};
-
-		return System.Text.Json.JsonSerializer.Serialize(req, OptionsJSON);
-	}
-
 	private static string FormatMethodName(System.Reflection.MethodBase method, bool is_verbose)
 	{
 		var @namespace = method.DeclaringType!.ToString();
@@ -260,7 +235,7 @@ public static class WebAPI
 			var path = new DirectoryInfo(imgFolder);
 			if (!path.Exists) return [];
 
-			path.GetFiles('*' + Configuration.ImagesExtension).AsParallel().WithDegreeOfParallelism(Configuration.MaxTransmissionThreads).ForAll(file =>
+			path.GetFiles('*' + Configuration.Screenshots.ImagesExtension).AsParallel().WithDegreeOfParallelism(Configuration.Screenshots.MaxTransferThreads).ForAll(file =>
 			{
 				// This function has its own try-catch block
 				// as, if in-case of any exception at file's
@@ -289,7 +264,7 @@ public static class WebAPI
 			var catalog = new DirectoryInfo(targetFolder);
 			if (!catalog.Exists) return false;
 
-			keys.AsParallel().WithDegreeOfParallelism(Configuration.MaxTransmissionThreads).ForAll(key =>
+			keys.AsParallel().WithDegreeOfParallelism(Configuration.Screenshots.MaxTransferThreads).ForAll(key =>
 				success &= DownloadAt(key, Path.Combine(catalog.FullName, key))
 			);
 

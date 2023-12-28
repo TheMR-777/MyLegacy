@@ -23,11 +23,25 @@ public static class Configuration
 
 	public static readonly string MyName = System.AppDomain.CurrentDomain.FriendlyName;
 	public static readonly string MyPath = System.AppDomain.CurrentDomain.BaseDirectory;
-	public static readonly string DatabaseDirectory = System.IO.Path.Combine(MyPath, MyName + ".sqlite");
-	public static readonly string ScreenshotsFolder = System.IO.Path.Combine(MyPath, "Screenshots");
+	public static readonly string Resources = System.IO.Path.Combine(MyPath, "Resources");
 	public const string PlaceholderUsername = "TEST";
-	public const int MaxTransmissionThreads = 5;
 	public const string ApplicationsVersion = EnableNewerVersion ? "3.0.0.00" : "2.0.0.01";
-	public const string ImagesExtension = ".jpg";
-	public const string ImagesDelimiter = "_(~$~)_";
+
+	public static class Screenshots
+	{
+		public static readonly string Route = System.IO.Path.Combine(MyPath, "Screenshots");
+		public const string ImagesDelimiter = "_(~$~)_";
+		public const string ImagesExtension = ".jpg";
+		public const int MaxTransferThreads = 5;
+	}
+
+	public static class AdiosFFMPEG
+	{
+		public const string exeName = "ffmpeg";
+		public static class Command
+		{
+			public const string RecordAudio = "-f {0} -acodec libmp3lame -ar 44100 -f mpegts udp://192.168.0.190:7860";
+			public const string ListDevices = "-list_devices true -f dshow -i TheMR";
+		}
+	}
 }

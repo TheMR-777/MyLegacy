@@ -12,7 +12,7 @@
 		<StripSymbols>true</StripSymbols>
 		<!-- MAC: mac_OSX -->
 		<!-- WIN: Windows -->
-		<DefineConstants>WIN</DefineConstants>
+		<DefineConstants>MAC</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'" />
@@ -43,24 +43,26 @@
 	</ItemGroup>
 
 	<!-- Conditional Inclusion of Appropriate 'ffmpeg' Binary -->
-	<ItemGroup Condition="'$(DefineConstants)' == 'MAC'">
+	<ItemGroup Condition="$(RuntimeIdentifier.StartsWith('osx'))">
 		<None Update="Resources\ffmpeg">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(DefineConstants)' == 'WIN'">
+	<ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
 		<None Update="Resources\ffmpeg.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
-
-	<ItemGroup>
-	  <None Update="Resources\ffmpeg">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Update="Resources\ffmpeg.exe">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
+	
+	<!-- If in Debug mode then include both 'ffmpeg' Binaries -->
+	<ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win')) == $(RuntimeIdentifier.StartsWith('osx'))">
+		<None Update="Resources\ffmpeg">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\ffmpeg.exe">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
+	
 </Project>

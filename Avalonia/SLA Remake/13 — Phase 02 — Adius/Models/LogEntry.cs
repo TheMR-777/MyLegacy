@@ -59,7 +59,33 @@ public class LogEntry
 			: "o"
 	};
 
-	private static string RemoveSpecialCharacters(string str) =>
+    public static string Serialize(System.Collections.Generic.IEnumerable<LogEntry> entries)
+    {
+        // The Serialization is being done
+        // as according to the legacy SLA,
+        // to maintain the API-consistency
+
+        var formatted = entries.Select(entry =>
+        {
+            var properties = entry.GetType().GetProperties();
+            var values = properties.Select(property => property.GetValue(entry, null));
+            return string.Join("|", values);
+        });
+
+        var now = DateTime.Now;
+        var req = new
+        {
+            UserName = CrossUtility.CurrentUser() + '~' + Environment.MachineName,
+            logDate = now.Date.ToString("dd/MM/yyyy HH:mm:ss") + "~WQoCW/gL8O/+pi0RP2l6xg==",
+            LogDateTimeStamp = now.ToString("dd/MM/yyyy HH:mm:ss"),
+            version = Configuration.ApplicationsVersion,
+            data = formatted
+        };
+
+        return System.Text.Json.JsonSerializer.Serialize(req, WebAPI.OptionsJSON);
+    }
+
+    private static string RemoveSpecialCharacters(string str) =>
 		new(str.Where(c =>
 			char.IsLetterOrDigit(c) ||
 			char.IsWhiteSpace(c) ||

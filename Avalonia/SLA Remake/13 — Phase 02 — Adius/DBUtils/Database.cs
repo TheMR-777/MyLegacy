@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Xml.Linq;
 
 namespace SLA_Remake;
 
@@ -27,7 +28,7 @@ public static class Database<T>
 		public static string ClearTable() => $"DELETE FROM {_name};";
 	}
 
-	private static readonly string DatabaseLocation = Configuration.DatabaseDirectory;
+	private static readonly string DatabaseLocation = System.IO.Path.Combine(Configuration.MyPath, Configuration.MyName + ".sqlite");
 	private static readonly string ConnectionString = $"Data Source={DatabaseLocation};Version=3;";
 	private static readonly System.Data.SQLite.SQLiteConnection Connection = new(ConnectionString);
 
