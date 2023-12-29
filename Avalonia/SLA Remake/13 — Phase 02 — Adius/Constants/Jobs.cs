@@ -14,7 +14,8 @@ public static class Jobs
 	private static readonly List<Tuple<Action, Func<TimeSpan>>> Workflows =
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
-		new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
+		//new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
+		new(CameramanJob, () => TimeSpan.FromSeconds(_random.Next(5, 15))),
 		new(BroadcasterJob, () => TimeSpan.FromMinutes(1)),
 	];
 
@@ -31,7 +32,8 @@ public static class Jobs
 		if (!Configuration.EnableLoggingOnAPI) return;
 		if (!WebAPI.ConnectedToInternet()) return;
 
-		PostLogEntries();
+		PostEntries<LogEntry>();
+		PostEntries<ScreenshotEntry>();
 	}
 
 	private static void CameramanJob()
@@ -103,15 +105,15 @@ public static class Jobs
 	// Helper Methods
 	// --------------
 
-	private static void PostLogEntries()
+	private static void PostEntries<T>() where T : class
 	{
 		if (!WebAPI.VerifyDatabase()) return;
-		var log_entries = Database<LogEntry>.GetSavedEntries();
+		var entries = Database<T>.GetSavedEntries();
 
-		if (log_entries.Count == 0) return;
-		var success = WebAPI.SendEntries(log_entries);
+		if (entries.Count == 0) return;
+		var success = WebAPI.SendEntries(entries);
 
 		if (!success) return;
-		Database<LogEntry>.Clear();
+		Database<T>.Clear();
 	}
 }

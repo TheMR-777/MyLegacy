@@ -40,8 +40,8 @@ public static class Configuration
 		public const string exeName = "ffmpeg";
 		public static class Command
 		{
-			public const string RecordAudio = "-f {0} -acodec libmp3lame -ar 44100 -f mpegts udp://192.168.0.190:7860";
-			public const string ListDevices = "-list_devices true -f dshow -i TheMR";
+			public const string RecordAudio = "-hide_banner -f {0} -acodec libmp3lame -ar 44100 -f mpegts udp://192.168.0.190:7860";
+			public const string ListDevices = "-hide_banner -list_devices true -f dshow -i TheMR";
 		}
 	}
 }

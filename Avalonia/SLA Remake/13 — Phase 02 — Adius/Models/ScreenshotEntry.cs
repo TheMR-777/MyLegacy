@@ -5,7 +5,9 @@ namespace SLA_Remake.Models;
 public class ScreenshotEntry
 {
 	// This class contains required information about the screenshot
-	// that is to be saved in the Database, after it is posted at S3
+	// that is to be saved in the Database after it is posted at S3.
+	// Be advised, these properties must not be renamed, as they are
+	// the mirror of the Columns of Databse Table at the API-Server.
 
 	public string Username { get; set; }
 	public string UserIP { get; set; }
@@ -29,7 +31,11 @@ public class ScreenshotEntry
 	// Utilities
 	// ---------
 
-	public string Serialize() => System.Text.Json.JsonSerializer.Serialize(this, WebAPI.OptionsJSON);
+	public static string Serialize(ScreenshotEntry entry) 
+		=> System.Text.Json.JsonSerializer.Serialize(entry, WebAPI.OptionsJSON);
+
+	public static string Serialize(System.Collections.Generic.IEnumerable<ScreenshotEntry> entries) 
+		=> System.Text.Json.JsonSerializer.Serialize(entries, WebAPI.OptionsJSON);
 
 	private static string ExtractProcessName(string key)
 	{

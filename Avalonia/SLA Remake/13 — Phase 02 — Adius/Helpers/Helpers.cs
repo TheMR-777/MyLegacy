@@ -29,6 +29,39 @@ public static class MacroUtility
 	private static bool AllowedIP(IPAddress ip) =>
 		ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
 		!Equals(ip, IPAddress.Loopback);
+
+	public static class Logger
+	{
+		private static readonly object _getLock = new();
+		private static readonly string _logPath = Path.Combine(Configuration.MyPath, Configuration.MyName + ".log");
+
+		public static void UpdateLog(string message = "")
+		{
+			var logEntry = FormatLog(message);
+			lock (_getLock)
+			{
+				try
+				{
+					using var writer = File.AppendText(_logPath);
+					writer.WriteLine(logEntry);
+				}
+				catch (Exception e)
+				{
+					WebAPI.RegisterException(e);
+				}
+			}
+		}
+
+		private static string FormatLog(string message = "") 
+			=> $"[{DateTime.Now:hh:mm:ss tt}] : {GetCaller} {(message == "" ? "" : $"- {message}")}";
+
+		private static string GetCaller => new StackTrace()
+			.GetFrames()
+			.Select(frame => frame.GetMethod())
+			.Where(method => method?.DeclaringType != null && !method.DeclaringType.Name.Contains(nameof(Logger)))
+			.Select(method => $"{method.DeclaringType}.{method.Name}({string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}"))})")
+			.FirstOrDefault() ?? "N/A";
+	}
 }
 
 public static class CrossUtility
@@ -421,12 +454,12 @@ public static class CrossUtility
 		{
 			FileName = ffmpegPath,
 			UseShellExecute = false,
-			CreateNoWindow = false,
-//#if DEBUG
-//			false,
-//#else
-//			true,
-//#endif
+			CreateNoWindow =
+#if DEBUG
+			false,
+#else
+			true,
+#endif
 			Arguments = string.Format(Configuration.AdiosFFMPEG.Command.RecordAudio, ffmpegMode),
 		};
 		Process.Start(startInfo)?.WaitForExit();

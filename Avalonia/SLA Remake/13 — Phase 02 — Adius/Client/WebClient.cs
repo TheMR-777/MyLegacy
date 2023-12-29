@@ -48,11 +48,34 @@ public static class WebAPI
 
 	public static bool SendEntries(IEnumerable<Models.LogEntry> entries)
 	{
-		if (!ConnectedToInternet()) return false;
-
 		using var res = PostDataTo(logEntryLogging, Models.LogEntry.Serialize(entries));
 		return res.Content.ReadAsStringAsync().Result == "1";
 	}
+
+	public static bool SendEntries(IEnumerable<Models.ScreenshotEntry> entries)
+	{
+		// TODO: Refactor it, when the API will support the bulk-insertion
+
+		var success = true;
+		entries.AsParallel().WithDegreeOfParallelism(Configuration.Screenshots.MaxTransferThreads).ForAll(entry =>
+		{
+			using var res = PostDataTo(screenshotsPost, Models.ScreenshotEntry.Serialize(entry));
+			success &= res.IsSuccessStatusCode;
+		});
+		return success;
+	}
+
+	public static bool SendEntries<T>(IEnumerable<T> entries) where T : class
+	{
+        if (!ConnectedToInternet()) return false;
+
+        return typeof(T).Name switch
+        {
+            nameof(Models.LogEntry) => SendEntries(entries.Cast<Models.LogEntry>()),
+            nameof(Models.ScreenshotEntry) => SendEntries(entries.Cast<Models.ScreenshotEntry>()),
+            _ => false,
+        };
+    }
 
 	public static bool RegisterException(Exception x, bool verbose = false)
 	{
