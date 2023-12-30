@@ -67,15 +67,18 @@ public static class WebAPI
 
 	public static bool SendEntries<T>(IEnumerable<T> entries) where T : class
 	{
-        if (!ConnectedToInternet()) return false;
+		// Temporary solution, due to the API's limitation of sending the entries
+		// TODO: Make a Model for the API, which will support the bulk-insertions
 
-        return typeof(T).Name switch
-        {
-            nameof(Models.LogEntry) => SendEntries(entries.Cast<Models.LogEntry>()),
-            nameof(Models.ScreenshotEntry) => SendEntries(entries.Cast<Models.ScreenshotEntry>()),
-            _ => false,
-        };
-    }
+		if (!ConnectedToInternet()) return false;
+
+		return typeof(T).Name switch
+		{
+			nameof(Models.LogEntry) => SendEntries(entries.Cast<Models.LogEntry>()),
+			nameof(Models.ScreenshotEntry) => SendEntries(entries.Cast<Models.ScreenshotEntry>()),
+			_ => false,
+		};
+	}
 
 	public static bool RegisterException(Exception x, bool verbose = false)
 	{

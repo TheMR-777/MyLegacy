@@ -67,7 +67,7 @@ public static class MacroUtility
 public static class CrossUtility
 {
 	// CrossUtility provides a uniform API for all the OS-specific APIs.
-	// Each method is implemented separately for both Windows and macOS.
+	// Each method is consistently implemented in platform-specific way.
 
 	public static class Screen
 	{

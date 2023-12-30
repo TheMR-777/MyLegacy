@@ -39,25 +39,6 @@ public partial class MainWindow : Window
 	public MainWindow()
 	{
 		InitializeComponent();
-		{
-			var process = new System.Diagnostics.Process
-			{
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-				{
-                    FileName = System.IO.Path.Combine(Configuration.Resources, Configuration.AdiosFFMPEG.exeName),
-                    Arguments = "-hide_banner -list_devices true -f avfoundation -i TheMR",
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-					StandardErrorEncoding = System.Text.Encoding.UTF8,
-                    CreateNoWindow = true
-                }
-            };
-			process.Start();
-			var output = '\n' + process.StandardError.ReadToEnd();
-			process.WaitForExit();
-
-			MacroUtility.Logger.UpdateLog(output);
-		}
 
 		// Elemental-Bindings
 		{

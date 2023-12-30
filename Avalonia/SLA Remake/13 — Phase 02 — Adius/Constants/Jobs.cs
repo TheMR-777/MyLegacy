@@ -10,12 +10,10 @@ public static class Jobs
 	// This class contains all the required jobs
 	// that are to be executed in the background
 
-	private static readonly Random _random = new();
 	private static readonly List<Tuple<Action, Func<TimeSpan>>> Workflows =
 	[
 		new(PostmanJob, () => TimeSpan.FromSeconds(17)),
-		//new(CameramanJob, () => TimeSpan.FromMinutes(_random.Next(5, 15))),
-		new(CameramanJob, () => TimeSpan.FromSeconds(_random.Next(5, 15))),
+		new(CameramanJob, () => TimeSpan.FromMinutes(Random.Shared.Next(5, 15))),
 		new(BroadcasterJob, () => TimeSpan.FromMinutes(1)),
 	];
 
