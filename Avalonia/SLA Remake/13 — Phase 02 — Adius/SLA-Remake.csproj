@@ -12,7 +12,7 @@
 		<StripSymbols>true</StripSymbols>
 		<!-- MAC: mac_OSX -->
 		<!-- WIN: Windows -->
-		<DefineConstants>MAC</DefineConstants>
+		<DefineConstants>WIN</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'" />
@@ -28,8 +28,8 @@
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.6" />
 		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
 		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.6" />
-		<PackageReference Include="AWSSDK.S3" Version="3.7.305.1" />
-		<PackageReference Include="Dapper" Version="2.1.24" />
+		<PackageReference Include="AWSSDK.S3" Version="3.7.305.9" />
+		<PackageReference Include="Dapper" Version="2.1.28" />
 		<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
 	</ItemGroup>
 

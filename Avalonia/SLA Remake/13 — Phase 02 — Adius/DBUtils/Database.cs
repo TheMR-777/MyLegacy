@@ -57,8 +57,12 @@ public static class Database<T>
 		lock (Connection)
 		{
 			Connection.Open();
-			var query = QueryBuilder.RetrieveAll();
+			var query = QueryBuilder.GenerateTable();
+			Connection.Execute(query);
+
+			query = QueryBuilder.RetrieveAll();
 			var yield = Connection.Query<T>(query).ToList();
+
 			Connection.Close();
 			return yield;
 		}
@@ -70,8 +74,12 @@ public static class Database<T>
 		lock (Connection)
 		{
 			Connection.Open();
-			var query = QueryBuilder.ClearTable();
+			var query = QueryBuilder.GenerateTable();
+			Connection.Execute(query);
+
+			query = QueryBuilder.ClearTable();
 			var yield = Connection.Execute(query);
+
 			Connection.Close();
 			return yield;
 		}

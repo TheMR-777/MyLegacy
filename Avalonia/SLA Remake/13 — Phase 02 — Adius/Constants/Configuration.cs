@@ -24,6 +24,7 @@ public static class Configuration
 	public static readonly string MyName = System.AppDomain.CurrentDomain.FriendlyName;
 	public static readonly string MyPath = System.AppDomain.CurrentDomain.BaseDirectory;
 	public static readonly string Resources = System.IO.Path.Combine(MyPath, "Resources");
+	public const string NotAvailableOrFound = "N/A";
 	public const string PlaceholderUsername = "TEST";
 	public const string ApplicationsVersion = EnableNewerVersion ? "3.0.0.00" : "2.0.0.01";
 

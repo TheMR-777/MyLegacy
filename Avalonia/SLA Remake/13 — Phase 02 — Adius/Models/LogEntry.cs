@@ -5,29 +5,29 @@ namespace SLA_Remake.Models;
 
 public class LogEntry
 {
-	public string UserId { get; set; }
+	public string UserID { get; set; }
 	public string UserName { get; set; }
-	public string UserIp { get; set; }
-	public string LogDate { get; set; }
+	public string UserIP { get; set; }
+	public string TimeStamp { get; set; }
 	public string LogInTime { get; set; }
 	public string LogOutTime { get; set; }
 	public string LogFlag { get; set; }
 	public string Reason { get; set; }
 	public string ReasonType { get; set; }
-	public string ReasonId { get; set; }
+	public string ReasonID { get; set; }
 	public string UserPCName { get; set; }
 	public string UserDisplayName { get; set; }
-	public string LogSide { get; set; }
+	public string FlagForAPI { get; set; }
 
-	public static LogEntry Create(bool login = true, string reasonDetail = null, Reason reason = null) => new()
+	public static LogEntry Create(bool login = true, string reasonDetail = Configuration.NotAvailableOrFound, Reason reason = null) => new()
 	{
 		// Constants
 		// ---------
 
-		UserId = "1",
+		UserID = "1",
 		UserName = CrossUtility.CurrentUser(),
-		UserIp = MacroUtility.IP.ToString(),
-		LogDate = DateTime.Now.Date.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture),
+		UserIP = MacroUtility.IP.ToString(),
+		TimeStamp = DateTime.Now.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture),
 		UserPCName = Environment.MachineName,
 		UserDisplayName = "USER",
 
@@ -36,25 +36,25 @@ public class LogEntry
 
 		LogInTime = login
 			? DateTime.Now.ToString("HH:mm")
-			: null,
+			: string.Empty,
 		LogOutTime = login
-			? null
+			? string.Empty
 			: DateTime.Now.ToString("HH:mm"),
 		LogFlag = login
 			? "0"
 			: "1",
 		Reason = login
 			? RemoveSpecialCharacters(reason!.RequiresMoreDetail
-				? reasonDetail?.Trim()
+				? reasonDetail.Trim()
 				: BackwardCompatibility.GetCompatibleReasonText(reason))
-			: null,
+			: string.Empty,
 		ReasonType = login
 			? BackwardCompatibility.GetCompatibleReasonText(reason)
-			: null,
-		ReasonId = login
+			: string.Empty,
+		ReasonID = login
 			? reason.DatabaseID.ToString(System.Globalization.CultureInfo.InvariantCulture)
 			: "0",
-		LogSide = login
+		FlagForAPI = login
 			? "i"
 			: "o"
 	};
