@@ -19,7 +19,7 @@ public class LogEntry
 	public string UserDisplayName { get; set; }
 	public string FlagForAPI { get; set; }
 
-	public static LogEntry Create(bool login = true, string reasonDetail = Configuration.NotAvailableOrFound, Reason reason = null) => new()
+	public static LogEntry Create(bool login = true, string reasonDetail = null, Reason reason = null) => new()
 	{
 		// Constants
 		// ---------
@@ -45,7 +45,7 @@ public class LogEntry
 			: "1",
 		Reason = login
 			? RemoveSpecialCharacters(reason!.RequiresMoreDetail
-				? reasonDetail.Trim()
+				? reasonDetail?.Trim() ?? string.Empty
 				: BackwardCompatibility.GetCompatibleReasonText(reason))
 			: string.Empty,
 		ReasonType = login
