@@ -60,7 +60,7 @@ public static class MacroUtility
 			.Select(frame => frame.GetMethod())
 			.Where(method => method?.DeclaringType != null && !method.DeclaringType.Name.Contains(nameof(Logger)))
 			.Select(method => $"{method.DeclaringType}.{method.Name}({string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}"))})")
-			.FirstOrDefault() ?? "N/A";
+			.FirstOrDefault() ?? Configuration.NotAvailableOrFound;
 	}
 }
 

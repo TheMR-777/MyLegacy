@@ -44,7 +44,7 @@ public class ScreenshotEntry
 
 		return IsValidRange(l, r)
 			? key[l..r]
-			: "N/A";
+			: Configuration.NotAvailableOrFound;
 	}
 
 	private static DateTime ExtractTimeStamp(string key)

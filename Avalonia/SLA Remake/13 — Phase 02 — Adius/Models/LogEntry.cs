@@ -5,58 +5,34 @@ namespace SLA_Remake.Models;
 
 public class LogEntry
 {
-	public string UserID { get; set; }
-	public string UserName { get; set; }
-	public string UserIP { get; set; }
-	public string TimeStamp { get; set; }
-	public string LogInTime { get; set; }
-	public string LogOutTime { get; set; }
-	public string LogFlag { get; set; }
-	public string Reason { get; set; }
-	public string ReasonType { get; set; }
-	public string ReasonID { get; set; }
-	public string UserPCName { get; set; }
-	public string UserDisplayName { get; set; }
-	public string FlagForAPI { get; set; }
+	// The arrangement of the following properties is crucial
+	// as it used to maintain the compatibility with the API.
 
-	public static LogEntry Create(bool login = true, string reasonDetail = null, Reason reason = null) => new()
+	public string UserID { get; private set; } = "1";
+	public string UserName { get; private set; } = CrossUtility.CurrentUser();
+	public string UserIP { get; private set; } = MacroUtility.IP.ToString();
+	public string TimeStamp { get; private set; } = DateTime.Now.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
+	public string LogInTime { get; private set; } = DateTime.Now.ToString("HH:mm");
+	public string LogOutTime { get; private set; } = DateTime.Now.ToString("HH:mm");
+	public string LogFlag_01 { get; private set; } = "1";
+	public string Reason { get; private set; } = string.Empty;
+	public string ReasonType { get; private set; } = string.Empty;
+	public string ReasonID { get; private set; } = "0";
+	public string UserMachineName { get; private set; } = Environment.MachineName;
+	public string UserDisplayName { get; private set; } = "USER";
+	public string LogFlag_02 { get; private set; } = "o";
+
+	public static LogEntry CreateLogout() => new();
+
+	public static LogEntry CreateLogin(Reason reason, string reasonDetail) => new()
 	{
-		// Constants
-		// ---------
-
-		UserID = "1",
-		UserName = CrossUtility.CurrentUser(),
-		UserIP = MacroUtility.IP.ToString(),
-		TimeStamp = DateTime.Now.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture),
-		UserPCName = Environment.MachineName,
-		UserDisplayName = "USER",
-
-		// Variables
-		// ---------
-
-		LogInTime = login
-			? DateTime.Now.ToString("HH:mm")
-			: string.Empty,
-		LogOutTime = login
-			? string.Empty
-			: DateTime.Now.ToString("HH:mm"),
-		LogFlag = login
-			? "0"
-			: "1",
-		Reason = login
-			? RemoveSpecialCharacters(reason!.RequiresMoreDetail
-				? reasonDetail?.Trim() ?? string.Empty
-				: BackwardCompatibility.GetCompatibleReasonText(reason))
-			: string.Empty,
-		ReasonType = login
-			? BackwardCompatibility.GetCompatibleReasonText(reason)
-			: string.Empty,
-		ReasonID = login
-			? reason.DatabaseID.ToString(System.Globalization.CultureInfo.InvariantCulture)
-			: "0",
-		FlagForAPI = login
-			? "i"
-			: "o"
+		LogFlag_01 = "0",
+		Reason = RemoveSpecialCharacters(reason.RequiresMoreDetail
+						? reasonDetail.Trim()
+						: BackwardCompatibility.GetCompatibleReasonText(reason)),
+		ReasonType = BackwardCompatibility.GetCompatibleReasonText(reason),
+		ReasonID = reason.DatabaseID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+		LogFlag_02 = "i"
 	};
 
 	public static string Serialize(System.Collections.Generic.IEnumerable<LogEntry> entries)
@@ -89,10 +65,10 @@ public class LogEntry
 		new(str.Where(c =>
 			char.IsLetterOrDigit(c) ||
 			char.IsWhiteSpace(c) ||
-			allowedCharacters.Contains(c))
+			AllowedSymbols.Contains(c))
 		.ToArray());
 
-	private const string allowedCharacters = ".-_";
+	private const string AllowedSymbols = ".-_";
 }
 
 public static class BackwardCompatibility

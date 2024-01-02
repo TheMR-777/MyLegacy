@@ -154,7 +154,7 @@ public partial class MainWindow : Window
 		// Database Logging
 		// ----------------
 
-		var entry = Models.LogEntry.Create(login: false);
+		var entry = Models.LogEntry.CreateLogout();
 		Database<Models.LogEntry>.Save(entry);
 	}
 
@@ -204,8 +204,7 @@ public partial class MainWindow : Window
 		// Database Logging
 		// ----------------
 
-		var entry = Models.LogEntry.Create(
-			login: true,
+		var entry = Models.LogEntry.CreateLogin(
 			reasonDetail: _reasonMore.Text,
 			reason: (Models.Reason)_reasonsBox.SelectedItem
 		);
