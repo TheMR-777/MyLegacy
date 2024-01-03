@@ -11,9 +11,9 @@ public class LogEntry
 	public string UserID { get; private set; } = "1";
 	public string UserName { get; private set; } = CrossUtility.CurrentUser();
 	public string UserIP { get; private set; } = MacroUtility.IP.ToString();
-	public string TimeStamp { get; private set; } = DateTime.Now.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
-	public string LogInTime { get; private set; } = DateTime.Now.ToString("HH:mm");
-	public string LogOutTime { get; private set; } = DateTime.Now.ToString("HH:mm");
+	public string TimeStamp => _timeStamp.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
+	public string LogInTime => _timeStamp.ToString(EntryTimeFormat);
+	public string LogOutTime => LogInTime;
 	public string LogFlag_01 { get; private set; } = "1";
 	public string Reason { get; private set; } = string.Empty;
 	public string ReasonType { get; private set; } = string.Empty;
@@ -65,10 +65,12 @@ public class LogEntry
 		new(str.Where(c =>
 			char.IsLetterOrDigit(c) ||
 			char.IsWhiteSpace(c) ||
-			AllowedSymbols.Contains(c))
+			ApprovedSymbols.Contains(c))
 		.ToArray());
 
-	private const string AllowedSymbols = ".-_";
+	private const string ApprovedSymbols = ".-_";
+	private const string EntryTimeFormat = "HH:mm";
+	private readonly DateTime _timeStamp = DateTime.Now;
 }
 
 public static class BackwardCompatibility

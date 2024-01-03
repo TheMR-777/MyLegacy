@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using System;
 using System.ComponentModel;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SLA_Remake;
 
