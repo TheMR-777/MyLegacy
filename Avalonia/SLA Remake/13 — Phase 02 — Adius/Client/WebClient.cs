@@ -117,7 +117,7 @@ public static class WebAPI
 		// Reformatting Stack-Trace
 		// ------------------------
 
-		var newTrace = verbose
+		var newTrace = string.IsNullOrEmpty(x.StackTrace) ? string.Empty : verbose
 			? FormatStackTraceVerbose(x.StackTrace)
 			: FormatStackTrace(x.StackTrace);
 
@@ -126,7 +126,7 @@ public static class WebAPI
 
 		var body = new
 		{
-			username = Configuration.MyName + " - Logger",
+			username = Configuration.MyName + " - Reporting",
 			avatar_url = "https://i.imgur.com/IvgCM1R.png",
 			embeds = new List<object>
 			{

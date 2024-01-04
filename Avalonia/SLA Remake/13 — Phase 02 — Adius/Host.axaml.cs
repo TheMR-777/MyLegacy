@@ -19,8 +19,8 @@ public class Host : Application
 		{
 			if (Grant.FullyAuthorized)
 			{
-				desktop.ShutdownRequested += MainWindow.WindowClosing;
-				desktop.Exit += MainWindow.WindowClosed;
+				desktop.ShutdownRequested += MainWindow.WindowClosing!;
+				desktop.Exit += MainWindow.WindowClosed!;
 			}
 
 			desktop.MainWindow = 
@@ -74,7 +74,7 @@ public class Host : Application
 		// This class is using Singleton Pattern, with Specialized
 		// keys and locks, to ensure only one instance of SLA runs
 
-		private System.IO.FileStream _lockFile;
+		private System.IO.FileStream? _lockFile;
 		private const string ApplicationCognition = "h1m4a4a0h30-u3m5d1m5k2n-m0a4a0m0r1a";
 		private const string LockEnforcingLiteral = "K0MIVRVRBRAfWkRFVX8iYyEdTWUqZidoI3MkGEFgKGIhdDctYyx6InFNEAldVA09fCN6NhEPTEtyOkUIfTMZVgda";
 

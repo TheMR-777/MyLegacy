@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+#pragma warning disable CA1416
 
 namespace SLA_Remake;
 
@@ -59,7 +60,7 @@ public static class MacroUtility
 			.GetFrames()
 			.Select(frame => frame.GetMethod())
 			.Where(method => method?.DeclaringType != null && !method.DeclaringType.Name.Contains(nameof(Logger)))
-			.Select(method => $"{method.DeclaringType}.{method.Name}({string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}"))})")
+			.Select(method => $"{method?.DeclaringType}.{method?.Name}({string.Join(", ", method?.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}") ?? [])})")
 			.FirstOrDefault() ?? Configuration.NotAvailableOrFound;
 	}
 }
@@ -138,7 +139,7 @@ public static class CrossUtility
 		if (processModule == null) return;
 		var exeLocation = processModule.FileName;
 		var appName = Path.GetFileNameWithoutExtension(exeLocation);
-		key.SetValue(appName, exeLocation);
+		key?.SetValue(appName, exeLocation);
 
 #elif MAC
 		var plistName = Configuration.MyName + ".plist";

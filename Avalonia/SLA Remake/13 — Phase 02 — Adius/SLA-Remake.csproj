@@ -4,7 +4,7 @@
 		<Description>SLA-Remake is a reliable, accountable, and minimal Break-Management tool, developed by the Software Department of ACE Group of Companies, specifically by Muhammad Ammar (ACE-619)</Description>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
-		<Nullable>disable</Nullable>
+		<Nullable>enable</Nullable>
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>

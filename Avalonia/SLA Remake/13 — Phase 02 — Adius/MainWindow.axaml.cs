@@ -59,8 +59,8 @@ public partial class MainWindow : Window
 
 		// Timer Initialization
 		{
-			_backgroundTimer.Tick += BackgroundTimer_Tick;
-			_primeGuardTimer.Tick += !Configuration.EnablePrimeGuard || IsDesigning ? NoOperation : PrimeGuard_Tick;
+			_backgroundTimer.Tick += BackgroundTimer_Tick!;
+			_primeGuardTimer.Tick += !Configuration.EnablePrimeGuard || IsDesigning ? NoOperation! : PrimeGuard_Tick!;
 			_backgroundTimer.Start();
 		}
 
@@ -100,14 +100,14 @@ public partial class MainWindow : Window
 	private void BindEvents()
 	{
 		// Main-Window specific
-		Opened += WindowOpened;
-		Closed += WindowClosed;
-		Closing += WindowClosing;
+		Opened += WindowOpened!;
+		Closed += WindowClosed!;
+		Closing += WindowClosing!;
 
 		// Others
-		_loginButton.Click += LoginButton_Click;
-		_reasonsBox.SelectionChanged += ReasonsBox_SelectionChanged;
-		_reasonMore.TextChanged += ReasonsDetail_TextChanged;
+		_loginButton.Click += LoginButton_Click!;
+		_reasonsBox.SelectionChanged += ReasonsBox_SelectionChanged!;
+		_reasonMore.TextChanged += ReasonsDetail_TextChanged!;
 	}
 
 	private void ResetFields()
@@ -118,13 +118,13 @@ public partial class MainWindow : Window
 		_loginButton.IsEnabled = false;
 	}
 
-	private void ForceActivate(object _ = null, object __ = null)
+	private void ForceActivate(object? _ = null, object? __ = null)
 	{
 		Activate();
 		this.BringIntoView();
 	}
 
-	private static void NoOperation(object _ = null, object __ = null) { }
+	private static void NoOperation(object _, object __) { }
 
 	// Event Handlers:
 	// ---------------
@@ -141,8 +141,8 @@ public partial class MainWindow : Window
 		// Timers Initialization
 		// ---------------------
 
-		_backgroundTimer.Tick += ForegroundTimer_TickTask;
-		Deactivated += Configuration.EnablePrimeGuard ? ForceActivate : NoOperation;
+		_backgroundTimer.Tick += ForegroundTimer_TickTask!;
+		Deactivated += Configuration.EnablePrimeGuard ? ForceActivate! : NoOperation!;
 		_primeGuardTimer.Start();
 
 		// Height Adjustment
@@ -169,7 +169,7 @@ public partial class MainWindow : Window
 		// Reinitiating measures can be Taken here
 	}
 
-	private void PrimeGuard_Tick(object _ = null, object __ = null)
+	private void PrimeGuard_Tick(object _, object __)
 	{
 		ForceActivate();
 		CrossUtility.RestrictOSFeatures();
@@ -194,8 +194,8 @@ public partial class MainWindow : Window
 		// Stopping Timers
 		// ---------------
 
-		_backgroundTimer.Tick -= ForegroundTimer_TickTask;
-		Deactivated -= ForceActivate;
+		_backgroundTimer.Tick -= ForegroundTimer_TickTask!;
+		Deactivated -= ForceActivate!;
 		_primeGuardTimer.Stop();
 
 		// _exitTime Interval can be handled here
@@ -206,8 +206,8 @@ public partial class MainWindow : Window
 		// ----------------
 
 		var entry = Models.LogEntry.CreateLogin(
-			reasonDetail: _reasonMore.Text,
-			reason: (Models.Reason)_reasonsBox.SelectedItem
+			reasonDetail: _reasonMore.Text ?? Configuration.NotAvailableOrFound,
+			reason: (Models.Reason)_reasonsBox.SelectedItem!
 		);
 		Database<Models.LogEntry>.Save(entry);
 

@@ -6,26 +6,23 @@ public class ScreenshotEntry
 {
 	// This class contains required information about the screenshot
 	// that is to be saved in the Database after it is posted at S3.
-	// Be advised, these properties must not be renamed, as they are
+	// Be advised, these properties must NOT be RENAMED, as they are
 	// the mirror of the Columns of Databse Table at the API-Server.
+	// However, they can be freely re-arranged as per the aesthetic.
 
-	public string Username { get; set; }
-	public string UserIP { get; set; }
-	public string UserPCName { get; set; }
-	public string ScreenshotKeyAWS { get; set; }	// AWS S3 Key
-	public string CurrentApp { get; set; }			// Currently Executing Application
-	public string LogTime { get; set; }				// Time of the Screenshot-Capture
-	public string Version { get; set; }				// Agent Version
+	public string Username { get; set; } = CrossUtility.CurrentUser();
+	public string UserPCName { get; set; } = Environment.MachineName;
+	public string UserIP { get; set; } = MacroUtility.IP.ToString();
+	public string ScreenshotKeyAWS { get; set; } = string.Empty;		// AWS S3 Key
+	public string CurrentApp { get; set; } = string.Empty;				// Currently Executing Application
+	public string LogTime { get; set; } = string.Empty;					// Time of the Screenshot-Capture
+	public string Version { get; set; } = Configuration.ApplicationsVersion;
 
 	public static ScreenshotEntry Create(string awsRef) => new()
 	{
-		Username = CrossUtility.CurrentUser(),
-		UserIP = MacroUtility.IP.ToString(),
-		UserPCName = Environment.MachineName,
 		ScreenshotKeyAWS = awsRef,
 		CurrentApp = ExtractProcessName(awsRef),
 		LogTime = ExtractTimeStamp(awsRef).ToString("yyyy-MM-dd HH:mm:ss"),
-		Version = Configuration.ApplicationsVersion
 	};
 
 	// Utilities
