@@ -269,7 +269,7 @@ public static class CrossUtility
 		method?.WaitForExit();
 
 		var output = (method?.StandardOutput.ReadToEnd().Trim() ?? string.Empty).Split('\n');
-		var banner = output.FirstOrDefault();
+		var banner = output.FirstOrDefault() ?? string.Empty;
 		var result = uint.TryParse(output.LastOrDefault(), out var unixID);
 		var p_name = result ? Process.GetProcessById((int)unixID).ProcessName : string.Empty;
 
