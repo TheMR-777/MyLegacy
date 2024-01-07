@@ -2,8 +2,11 @@
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:sla="clr-namespace:SLA_Remake"
+		xmlns:models="clr-namespace:SLA_Remake.Models"
 		mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="1000"
 		x:Class="SLA_Remake.MainWindow"
+		x:DataType="sla:MainWindow"
 		Icon="/Assets/sla-logo.ico"
 		
 		Width="10000"
@@ -100,7 +103,7 @@
 				<ListBox
 					Grid.Row="0"
 					Name="ReasonsBox"
-					ItemsSource="{Binding GetReasons}"
+					ItemsSource="{CompiledBinding GetReasons}"
 					CornerRadius="5"
 					SelectedIndex="0"
 					Background="{x:Null}"
@@ -117,15 +120,15 @@
 
 					<!-- Item Template -->
 					<ListBox.ItemTemplate>
-						<DataTemplate>
+						<DataTemplate x:DataType="models:Reason">
 							<StackPanel Orientation="Horizontal">
 								<TextBlock
-									Text="{Binding Name}"
+									Text="{CompiledBinding Name}"
 									Margin="0,0,10,0"/>
 								<TextBlock
 									Text="•"
 									Opacity="0.07"
-									IsVisible="{Binding RequiresMoreDetail}"/>
+									IsVisible="{CompiledBinding RequiresMoreDetail}"/>
 							</StackPanel>
 						</DataTemplate>
 					</ListBox.ItemTemplate>
