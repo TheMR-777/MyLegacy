@@ -243,8 +243,8 @@ public static class WebAPI
 		private const string _bucket = "sla-documents";
 		private static readonly string _prefix = $"{Configuration.MyName}{BacksSlash}{CrossUtility.CurrentUser()}@{Environment.MachineName}{BacksSlash}";
 		private static readonly Amazon.S3.Transfer.TransferUtility _awsClient = new(
-			"AKIARYXL6P2LDR5IYXN5",
-			"maY4buTCyWbXmqHoRvHz46jSPGtoGz6mA94x4WP+",
+			"...",
+			"...",
 			Amazon.RegionEndpoint.EUWest2
 		);
 
