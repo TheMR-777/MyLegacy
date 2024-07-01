@@ -1,0 +1,1 @@
+javascript:(function() { var buttons = document.querySelectorAll('button[disabled],input[disabled],textarea[disabled]'); for(var i = 0; i < buttons.length; i++) { buttons[i].disabled = false; }})();
