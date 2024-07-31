@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace MyPlayground_C_
@@ -11,7 +9,7 @@ namespace MyPlayground_C_
         private const string MyVolume = "amsNet";
         private const string MyDomain = "ACE";
         private const string Username = "asc";
-        private const string Password = "***";
+        private const string Password = "asc1234";
         private const string FilePath =
 #if WIN
             @"SLA\test.txt";
@@ -81,9 +79,12 @@ namespace MyPlayground_C_
                 Marshal.FreeHGlobal(netResource.lpRemoteName);
             }
 #elif MAC
-            if (Directory.Exists(GetNetworkDrivePath)) return;
-            var x = Directory.CreateDirectory(GetNetworkDrivePath);
-            var mountCommand = $"echo '{Password}' | mount_smbfs //{Username}@{TheDrive}/{MyVolume} \\\"{x.FullName}\\\"";
+            var mountPoint = GetNetworkDrivePath;
+            if (IsMounted(mountPoint)) return;
+            if (!Directory.Exists(mountPoint)) Directory.CreateDirectory(mountPoint);
+
+            // var mountCommand = $"echo '{Password}' | mount_smbfs //{Username}@{TheDrive}/{MyVolume} \\\"{mountPoint}\\\"";
+            var mountCommand = $"mount_smbfs //{Username}:{Password}@{TheDrive}/{MyVolume} \\\"{mountPoint}\\\"";
             ExecuteCommand(mountCommand);
 #endif
         }
@@ -93,9 +94,12 @@ namespace MyPlayground_C_
 #if WIN
             WNetCancelConnection2A(GetNetworkDrivePath, 0, true);
 #elif MAC
-            var unmountCommand = $"umount {GetNetworkDrivePath}";
+            var mountPoint = GetNetworkDrivePath;
+            if (!IsMounted(mountPoint)) return;
+
+            var unmountCommand = $"umount {mountPoint}";
             ExecuteCommand(unmountCommand);
-            Directory.Delete(GetNetworkDrivePath);
+            Directory.Delete(mountPoint);
 #endif
         }
 
@@ -138,5 +142,22 @@ namespace MyPlayground_C_
             var error = process.StandardError.ReadToEnd();
             throw new Exception($"Command execution failed with exit code {process.ExitCode}: {error}");
         }
+
+#if MAC
+        private static bool IsMounted(string mountPoint)
+        {
+            var checkMountCommand = $"mount | grep \\\"{mountPoint}\\\"";
+            var processInfo = new ProcessStartInfo("sh", $"-c \"{checkMountCommand}\"")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            var process = Process.Start(processInfo) ?? throw new Exception("Failed to start process.");
+            process.WaitForExit();
+            return !string.IsNullOrEmpty(process.StandardOutput.ReadToEnd());
+        }
+#endif
     }
 }
