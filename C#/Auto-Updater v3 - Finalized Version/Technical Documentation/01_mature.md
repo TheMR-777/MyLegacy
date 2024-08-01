@@ -4,7 +4,23 @@ The **Evolver**.
 
 ## Introduction
 
-This document describes the mechanism for upgrading the SLA-Remake application. Here is a brief overview of the process:
+This document describes the mechanism for upgrading the SLA-Remake application. Here are the main requirements for the upgrade mechanism:
+
+### Requirements
+
+Inspired from Chromium Updater.
+
+- Absolute Silent Update.
+- Support Updating from:
+  - Direct Download Link.
+  - SMB Shared Drive Path.
+- No User Interaction, and Notification.
+- Data and State Preservation, and Integrity.
+- Only Update when Client is Inactive.
+- Reliable and Secure.
+- Reliable Rollback Mechanism.
+
+Here is a brief overview of the process:
 
 ### Overall Approach
 
@@ -74,11 +90,11 @@ Possible Response Packet:
 {
     "version": "4.1.0.0",
     "url-windows": {
-      "link": "<direct-download-link>",
+      "link": "<direct-download-link-or-shared-drive-path>",
       "hash": "<sha256-hash>"
     },
     "url-macos": {
-      "link": "<direct-download-link>",
+      "link": "<direct-download-link-or-shared-drive-path>",
       "hash": "<sha256-hash>"
     }
 }
