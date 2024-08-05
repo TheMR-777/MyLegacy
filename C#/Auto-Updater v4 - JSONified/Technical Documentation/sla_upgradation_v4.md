@@ -152,7 +152,7 @@ This module is invoked after the employee logs in.
 
 This module operates independently from the client app. The `evolver` is a separate program made with C#/.NET that quickly performs its tasks. The `evolver` only contains those tasks, which client app cannot perform due to its own termination.
 
-The `evolver` expects the following JSON packet as an argument:
+The `evolver` expects the following **Base64** formatted (UTF-8) JSON string as an argument:
 
 ```json
 {
@@ -197,8 +197,8 @@ processes.Where(p => p.ProcessName.Contains("<client_context.executable>", Strin
 4. Restoration of the client context:
    - The files and folders mentioned in the `restoration` array are restored from the latest backup, if present.
 
-5. Initiates the client app with the argument: `--silent-start`.
-   - The client app runs in the background without starting the main window immediately.
+5. Initiates the client app with `client_context.arguments`. Following are the supported arguments:
+   - `--silent-start`: The client app runs in the background without starting the main window immediately.
 
 ### Exception Cases
 
