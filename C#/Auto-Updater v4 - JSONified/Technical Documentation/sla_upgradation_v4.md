@@ -37,8 +37,8 @@ Here is a brief overview of the process:
    - Terminates the client app.
    - Creates a backup of the current version.
    - Moves the update package content to the installation folder.
-   - Restores the SQLite3 cache file from the backup.
-   - Initiates the client app with the argument: `--silent-start`.
+   - Restores the existing cache and state files.
+   - Silently initiates the client app.
 
 ## Initial Setup
 
@@ -83,22 +83,30 @@ Table Update
 
 The `EvolverJob` runs periodically as a background service to check for updates.
 
-0. `EvolverJob` Requests for the Update Information
+0. `EvolverJob` Requests for the Update Information.
 
-Possible Response Packet:
+The Response Packet:
 ```json
 {
     "version": "4.1.0.0",
-    "url-windows": {
+    "src-windows": {
       "link": "<direct-download-link-or-shared-drive-path>",
       "hash": "<sha256-hash>"
     },
-    "url-macos": {
+    "src-macos": {
       "link": "<direct-download-link-or-shared-drive-path>",
       "hash": "<sha256-hash>"
     }
 }
 ```
+
+| Field | Description |
+| --- | --- |
+| `version` | The currently deployed version of the client app |
+| `src-windows` | Resources for Windows |
+| `src-macos` | Resources for macOS |
+| `link` | - Direct Download Link (`https://.../*.zip`), Or <br> - Shared Drive Path (`smb://172.16.70.75/amsNet/.../*.zip`) |
+| `hash` | SHA256 Hash of the package |
 
 1. The client app verifies the package to download, according to the following criteria:
    - The received version is higher than the current version.
@@ -106,15 +114,20 @@ Possible Response Packet:
    - The URL is provided, and is valid.
    - The hash is provided, and is valid.
   
-2. If the above criteria is met, the client app downloads the package (in a temporary folder provided by .NET), and validates the package as follows:
+2. If the above criteria meets, the client app downloads the package (in a temporary folder provided by .NET), and validates the package as follows:
    - The package must be a `zip` file.
    - The hash of the package must match the provided hash.
    - The folder structure must be similar to:
+  
 ```
-"<extracted-dir>/SLA-Remake - Windows or macOS/SLA-Remake.exe"
+<zip-archive>
+└── SLA-Remake - Windows / macOS
+    ├── SLA-Remake.exe (executable)
+    ├── SLA-Remake.sqlite (cache)
+    └── ...
 ```
 
-3. If the above criteria is met, the package is extracted.
+3. If the above criteria meets, the package is extracted.
    - The extracted package is also placed in a temporary folder provided by .NET.
    - The `zip` is deleted after successful extraction.
    
@@ -128,7 +141,7 @@ Possible Response Packet:
 ### Exception Cases
 
 - Any of the criteria is not met.
-- Download link is not a Direct Download Link.
+- Download link is invalid.
 - Server is unreachable or down.
 
 ## Module 02: Launching Evolver
@@ -138,7 +151,7 @@ This module is invoked after the employee logs in.
 - The client app checks for updates in the `SQLite3.UpdatesRecord` table.
   - Only the latest entry is considered.
   
--  If the following criteria is met, The `evolver` is initiated with the path to the update package passed as an argument.
+-  If the following criteria meets, The `evolver` is initiated with the path to the update package passed as an argument.
    - The `path` is valid.
    - The `go_live` flag is set to `1`.
   
@@ -152,7 +165,13 @@ This module is invoked after the employee logs in.
 
 This module operates independently from the client app. The `evolver` is a separate program made with C#/.NET that quickly performs its tasks. The `evolver` only contains those tasks, which client app cannot perform due to its own termination.
 
-The `evolver` expects the following **Base64** formatted (UTF-8) JSON string as an argument:
+The `evolver` is made to be configurable by the client app, and receives the Base64 formatted (UTF-8) JSON string as a CLI-argument. The format of calling the `evolver` is as follows:
+
+```bash
+> ./Evolver "<base64-string>"
+```
+
+The JSON string is expected to have the following structure:
 
 ```json
 {
@@ -161,6 +180,7 @@ The `evolver` expects the following **Base64** formatted (UTF-8) JSON string as 
    "client_context": {
       "destination": "<client-path>",
       "executable": "<client-executable>",
+      "arguments": "<client-arguments>",
       "restoration": [
          "SLA-Remake.sqlite",
          "<screenshots-folder-name>",
@@ -170,13 +190,22 @@ The `evolver` expects the following **Base64** formatted (UTF-8) JSON string as 
 }
 ```
 
-The `restoration` array contains the files and folders to be restored from the existing client version. The files and folders must be relative to the client's installation folder.
+| Field | Description |
+| --- | --- |
+| `package_path` | The path to the extracted package (the actual update) |
+| `backups_keep` | The number of backups to keep, rest will be disposed |
+| `client_context` | The client-related information |
+| `destination` | The path to the installation folder of the client app |
+| `executable` | The name of the client executable |
+| `restoration` | The files and folders to be restored from the existing client version |
 
 The `evolver` performs the following tasks:
 
 1. Validation of:
    - Arguments count
-   - All the paths are valid
+   - `package_path`: checks for validity and existence
+   - `backups_keep`: checks for a valid number
+   - `client_context`: checks for the validity and existence of `destination`, `executable`, and `arguments`
 
 2. Terminates the client app.
    - Uses the following technique to terminate the client app:
@@ -189,6 +218,15 @@ processes.Where(p => p.ProcessName.Contains("<client_context.executable>", Strin
 2. Creates a backup of the current version.
    - The backup is stored in the `SLA-Remake/Backups` folder with the name `<original-folder-name> - <timestamp>`.
    - The backup contains the entire `SLA-Remake - Windows / macOS` folder.
+   - For Reference:
+
+```
+SLA-Remake
+└── Backups
+    ├── SLA-Remake - Windows / macOS - <timestamp_01>
+    ├── SLA-Remake - Windows / macOS - <timestamp_02>
+    └── ...
+```
 
 3. Moves the new content to the installation folder.
    - The update package is copied to `SLA-Remake` folder, as `SLA-Remake - Windows / macOS`.
