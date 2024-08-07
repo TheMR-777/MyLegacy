@@ -171,6 +171,7 @@ public static class Evolver
 			{
 				Log("Terminating: " + process.ProcessName);
 				process.Kill();
+				process.WaitForExit();
 			}
 		}
 		catch (Exception x)
@@ -239,7 +240,7 @@ public static class Evolver
 				}
 				else
 				{
-					LogError($"The Backup not found\n OF: {item}\n IN: {Configuration.BackupDirectory}");
+					LogError($"The Backup not found.{PairedLogMessageDetail(item, Configuration.BackupDirectory, "OF", "IN")}");
 				}
 			}
 			catch (Exception x)
@@ -387,7 +388,7 @@ public static class Evolver
 		}
 		catch (Exception ex)
 		{
-			message += $"\n REASON {ex.Message}";
+			message += $"\n REASON: {ex.Message}";
 			throw new IOException("Failed to copy directory" + message, ex);
 		}
 	}
@@ -403,7 +404,7 @@ public static class Evolver
 		}
 		catch (Exception ex)
 		{
-			message += $"\n REASON {ex.Message}";
+			message += $"\n REASON: {ex.Message}";
 			throw new IOException("Failed to copy file" + message, ex);
 		}
 	}
